@@ -1,0 +1,35 @@
+# DAB bundle root. See docs/deployment-strategy.md for the design this
+# implements — why DAB owns only the Job + Pipeline, not schemas.
+bundle:
+  name: meridian
+
+include:
+  - resources/*.yml
+
+variables:
+  schema_prefix:
+    description: >-
+      Prefix for the three medallion schemas (bronze/silver/gold). Every
+      bundle resource and both deploy/scripts/*.py scripts read this same
+      variable/default rather than hardcoding the name a second time —
+      see docs/deployment-strategy.md "Schema prefix". Matches the names
+      already used throughout contracts/*.yml and docs/conventions.md.
+    default: meridian
+  warehouse_id:
+    description: >-
+      Serverless SQL warehouse ID the Job's COPY INTO tasks run against
+      (docs/pipeline-architecture.md "Platform constraints" — serverless-
+      only compute, no clusters). No default: every workspace has a
+      different warehouse ID. Find yours with `databricks warehouses
+      list`, then supply it with --var="warehouse_id=<id>" at deploy
+      time, or add it under targets.dev.variables below once known.
+
+targets:
+  dev:
+    mode: development
+    default: true
+    # No workspace.host here deliberately: auth comes from the local
+    # Databricks CLI profile (`databricks configure`), per
+    # docs/deployment-strategy.md's Platform constraints note that Free
+    # Edition CLI auth only reliably works from a local machine. Use
+    # `--profile <name>` at deploy time for a non-default profile.
