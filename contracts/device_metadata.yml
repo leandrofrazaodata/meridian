@@ -1,0 +1,68 @@
+name: device_metadata
+description: Per-device calibration and firmware context.
+grain: one row per device
+owner: Leandro Frazão
+
+source:
+  format: csv
+  path: /Volumes/workspace/default/raw/data/health_summaries/device_metadata.csv
+  read_options:
+    header: true
+    inferSchema: true
+
+bronze:
+  table: meridian_bronze.device_metadata
+  load_pattern: copy_into
+
+natural_key: [device_id]
+
+schema:
+  - name: participant_id
+    type: string
+    nullable: false
+    description: Foreign key -> participants.participant_id
+  - name: device_id
+    type: string
+    nullable: false
+  - name: wear_site
+    type: string
+    nullable: false
+    description: wrist_dominant or wrist_nondominant
+  - name: calibration_date
+    type: date
+    nullable: false
+  - name: firmware_version
+    type: string
+    nullable: true
+    description: Can be blank in source — see fix rule below
+  - name: device_label
+    type: string
+    nullable: false
+    description: >
+      Free-text description, e.g. "Fitbit Charge 5 · fw2.2.1 · SN:...".
+      Always carries the true firmware version, including when
+      firmware_version is blank.
+
+quality:
+  - id: participant_id_not_null
+    rule: participant_id IS NOT NULL
+    on_fail: quarantine
+    note: A device row with no owner can't be joined to anything downstream.
+  - id: participant_exists
+    rule: participant_id IN (SELECT participant_id FROM meridian_silver.participants)
+    on_fail: quarantine
+    note: Same referential pattern as wellness_survey.participant_exists.
+  - id: device_id_not_null
+    rule: device_id IS NOT NULL
+    on_fail: fail
+  - id: wear_site_known
+    rule: "wear_site IN ('wrist_dominant', 'wrist_nondominant')"
+    on_fail: flag
+  - id: firmware_backfilled
+    rule: firmware_version IS NOT NULL
+    on_fail: fix
+    note: Regex-extract the version out of device_label when firmware_version is blank.
+
+freshness:
+  cadence: static
+

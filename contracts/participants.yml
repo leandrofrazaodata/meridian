@@ -1,0 +1,93 @@
+name: participants
+description: Study roster — one row per enrolled participant.
+grain: one row per participant
+owner: Leandro Frazão
+
+source:
+  format: csv
+  path: /Volumes/workspace/default/raw/data/participants/participants.csv
+  read_options:
+    header: true
+    inferSchema: true
+
+bronze:
+  table: meridian_bronze.participants
+  load_pattern: copy_into
+
+natural_key: [participant_id]
+
+schema:
+  - name: participant_id
+    type: string
+    nullable: false
+    description: Unique participant identifier (P001–P050)
+  - name: device_id
+    type: string
+    nullable: false
+    description: Fitbit device serial number (FBT-NNNN-XXXXXXXX)
+  - name: age
+    type: int
+    nullable: false
+    description: Age in years at study enrolment
+  - name: height_cm
+    type: int
+    nullable: false
+  - name: gender
+    type: string
+    nullable: false
+    description: male or female
+  - name: chronotype
+    type: string
+    nullable: false
+    description: "A = morning type, B = evening type"
+  - name: max_heart_rate
+    type: int
+    nullable: false
+    description: Estimated max HR (bpm); 220 − age + individual offset
+
+quality:
+  - id: pid_not_null
+    rule: participant_id IS NOT NULL
+    on_fail: fail
+    note: Natural key — a null here means the row can't be linked to anything.
+  - id: participant_number_valid
+    rule: "CAST(SUBSTRING(participant_id, 2, 3) AS INT) BETWEEN 1 AND 50"
+    on_fail: quarantine
+    note: >
+      Checks the key's own shape, not an attribute — same category as an
+      orphaned FK, so it gets the same treatment as one. Kept separate from
+      pid_not_null since a malformed-but-non-null ID needs a different on_fail.
+  - id: device_id_not_null
+    rule: device_id IS NOT NULL
+    on_fail: flag
+  - id: device_id_unique_to_participant
+    rule: "COUNT(*) OVER (PARTITION BY device_id) = 1"
+    on_fail: quarantine
+    note: A device shared by two participants risks misattributing wearable data to the wrong person.
+  - id: age_plausible
+    rule: age BETWEEN 18 AND 90
+    on_fail: flag
+  - id: height_plausible
+    rule: height_cm BETWEEN 140 AND 210
+    on_fail: flag
+  - id: gender_known
+    rule: "gender IN ('male', 'female')"
+    on_fail: flag
+  - id: chronotype_known
+    rule: "chronotype IN ('A', 'B')"
+    on_fail: flag
+    note: >
+      Confirmed against actual source values (A/B) — a prior prototype
+      checked against ('morning','evening','intermediate') instead, which
+      never matched. Verify against the real data before trusting a rule.
+  - id: max_heart_rate_plausible
+    rule: "ABS(max_heart_rate - (220 - age)) <= 30"
+    on_fail: flag
+    note: >
+      Tolerance derived from the real offset distribution across all 50
+      participants (mean≈0.8, stddev≈14.5) — not guessed. Currently flags
+      one row (P021, offset +37).
+
+freshness:
+  cadence: static
+  notes: Roster is set at enrolment; not expected to change during the study window.

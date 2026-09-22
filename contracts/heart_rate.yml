@@ -1,0 +1,59 @@
+name: heart_rate
+description: Per-minute heart-rate records from the wristband.
+grain: one row per participant per minute
+owner: Leandro Frazão
+
+source:
+  format: json
+  path: /Volumes/workspace/default/raw/data/wearable_events/*/heart_rate.json
+  read_options:
+    multiLine: true
+  notes: >
+    One file per participant; participant ID also recoverable from the file
+    path (see _pid_from_path in docs/conventions.md) and cross-checked
+    against the row's own participant_id field.
+
+bronze:
+  table: meridian_bronze.heart_rate
+  load_pattern: copy_into
+
+natural_key: [participant_id, timestamp]
+
+schema:
+  - name: timestamp
+    type: timestamp
+    nullable: false
+    description: >
+      Minute-boundary. Mostly naive local (UTC-05:00), occasionally
+      Z-suffixed UTC — normalize explicitly, don't assume one format.
+  - name: heart_rate_bpm
+    type: int
+    nullable: false
+  - name: participant_id
+    type: string
+    nullable: false
+
+quality:
+  - id: hr_plausible
+    rule: heart_rate_bpm BETWEEN 40 AND 200
+    on_fail: flag
+    note: >
+      High-frequency series (~40K rows/participant) — flagged, not
+      quarantined, to avoid fragmenting the series. See docs/validation-rules.md.
+  - id: ts_not_null
+    rule: timestamp IS NOT NULL
+    on_fail: fail
+  - id: pid_matches_path
+    rule: participant_id = _pid_from_path
+    on_fail: flag
+  - id: stuck_sensor
+    rule: not a repeated identical value for an extended run
+    on_fail: flag
+    note: >
+      Optical HR sensors can get stuck and repeat the last reading for
+      hours. Exact run-length threshold TBD — flag long identical-value
+      runs per participant.
+
+freshness:
+  cadence: static
+  notes: Fixed 28-day dataset today; would be daily in a live deployment.

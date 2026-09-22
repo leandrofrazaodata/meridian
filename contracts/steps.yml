@@ -1,0 +1,47 @@
+name: steps
+description: Per-minute step-count records from the wristband.
+grain: one row per participant per minute
+owner: Leandro Frazão
+
+source:
+  format: json
+  path: /Volumes/workspace/default/raw/data/wearable_events/*/steps.json
+  read_options:
+    multiLine: true
+
+bronze:
+  table: meridian_bronze.steps
+  load_pattern: copy_into
+
+natural_key: [participant_id, timestamp]
+
+schema:
+  - name: timestamp
+    type: timestamp
+    nullable: false
+    description: Minute-boundary, whole-minute (seconds = 00)
+  - name: steps
+    type: int
+    nullable: false
+  - name: participant_id
+    type: string
+    nullable: false
+
+quality:
+  - id: steps_non_negative
+    rule: steps >= 0
+    on_fail: flag
+  - id: steps_plausible
+    rule: steps <= 250
+    on_fail: flag
+    note: Expected range is 0-30/min at rest-to-moderate activity; 250 is a hard ceiling, not the expected max.
+  - id: ts_not_null
+    rule: timestamp IS NOT NULL
+    on_fail: fail
+  - id: pid_matches_path
+    rule: participant_id = _pid_from_path
+    on_fail: flag
+
+freshness:
+  cadence: static
+  notes: Fixed 28-day dataset today; would be daily in a live deployment.

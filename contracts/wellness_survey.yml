@@ -1,0 +1,63 @@
+name: wellness_survey
+description: Daily self-reported wellness scores, submitted each morning via in-app survey.
+grain: one row per participant per day
+owner: Leandro Frazão
+
+source:
+  format: csv
+  path: /Volumes/workspace/default/raw/data/health_summaries/wellness_survey.csv
+  read_options:
+    header: true
+    inferSchema: true
+
+bronze:
+  table: meridian_bronze.wellness_survey
+  load_pattern: copy_into
+
+natural_key: [participant_id, date]
+
+schema:
+  - name: participant_id
+    type: string
+    nullable: false
+    description: Foreign key -> participants.participant_id
+  - name: date
+    type: date
+    nullable: false
+  - name: fatigue_score
+    type: int
+    nullable: false
+    description: 1 = exhausted, 5 = fully rested
+  - name: stress_score
+    type: int
+    nullable: false
+    description: 1 = highly stressed, 5 = no stress
+  - name: readiness_score
+    type: int
+    nullable: false
+    description: 0 = not ready, 10 = peak readiness
+  - name: sleep_quality_score
+    type: int
+    nullable: false
+    description: 1 = very poor, 5 = excellent
+
+quality:
+  - id: participant_exists
+    rule: participant_id IN (SELECT participant_id FROM meridian_silver.participants)
+    on_fail: quarantine
+    note: Referential check against the roster — orphans go to quarantine_wellness.
+  - id: fatigue_in_range
+    rule: fatigue_score BETWEEN 1 AND 5
+    on_fail: flag
+  - id: stress_in_range
+    rule: stress_score BETWEEN 1 AND 5
+    on_fail: flag
+  - id: readiness_in_range
+    rule: readiness_score BETWEEN 0 AND 10
+    on_fail: flag
+  - id: sleep_quality_in_range
+    rule: sleep_quality_score BETWEEN 1 AND 5
+    on_fail: flag
+
+freshness:
+  cadence: daily

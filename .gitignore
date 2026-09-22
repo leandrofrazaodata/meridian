@@ -1,0 +1,4 @@
+# Raw dataset lives in the Databricks Volume (see docs/deployment-strategy.md),
+# not in git — only the data dictionary (documentation, not data) is tracked.
+data/*
+!data/data_dictionary.md

@@ -1,0 +1,72 @@
+name: sleep
+description: Nightly sleep sessions, each with a nested array of stages.
+grain: one row per participant per night (stages nested within)
+owner: Leandro Frazão
+
+source:
+  format: json
+  path: /Volumes/workspace/default/raw/data/wearable_events/*/sleep.json
+  read_options:
+    multiLine: true
+
+bronze:
+  table: meridian_bronze.sleep
+  load_pattern: copy_into
+
+natural_key: [participant_id, date]
+
+schema:
+  - name: participant_id
+    type: string
+    nullable: false
+  - name: date
+    type: date
+    nullable: false
+    description: Wake-up date — the session spans the night before this date.
+  - name: sleep_onset
+    type: timestamp
+    nullable: false
+  - name: sleep_end
+    type: timestamp
+    nullable: false
+  - name: efficiency_pct
+    type: float
+    nullable: false
+    description: Source-reported session efficiency; reconciled against stages in Silver.
+  - name: restlessness
+    type: float
+    nullable: true
+  - name: stages
+    type: "array<struct<stage:string, start_time:timestamp, end_time:timestamp, duration_min:int>>"
+    nullable: false
+    description: Expected order light -> deep -> rem -> light -> awake.
+
+quality:
+  - id: session_valid
+    rule: sleep_onset < sleep_end
+    on_fail: quarantine
+  - id: stage_order_expected
+    rule: "stages follow light -> deep -> rem -> light -> awake"
+    on_fail: flag
+  - id: duration_plausible
+    rule: asleep_min BETWEEN 120 AND 720
+    on_fail: flag
+    note: asleep_min is derived in Silver from the stages array, not read directly.
+  - id: efficiency_reconciles
+    rule: abs(efficiency_pct_derived - efficiency_pct_source) < 5
+    on_fail: flag
+    note: Both values are kept in Silver; this just marks sessions where they disagree.
+  - id: stage_contiguous
+    rule: "each stage's end_time equals the next stage's start_time"
+    on_fail: flag
+    note: stage_order_expected checks stage names only — this catches gaps or overlaps between them.
+  - id: stage_duration_consistent
+    rule: "stages.duration_min equals end_time minus start_time, in whole minutes"
+    on_fail: flag
+  - id: restlessness_in_range
+    rule: restlessness BETWEEN 0 AND 1
+    on_fail: flag
+
+freshness:
+  cadence: static
+  notes: Fixed 28-day dataset today; would be daily in a live deployment.
