@@ -5,3 +5,8 @@ data/*
 
 # Local git worktrees used for isolated plan execution (superpowers:using-git-worktrees).
 .worktrees/
+
+# Python artifacts (deploy/scripts/ now has a pytest suite).
+__pycache__/
+*.pyc
+.pytest_cache/
