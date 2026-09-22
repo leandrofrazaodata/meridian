@@ -6,6 +6,13 @@
 -- Parameters (supplied by deploy/resources/jobs.yml's sql_task.parameters):
 --   :target_table  -- "workspace.<schema_prefix>_bronze.device_metadata"
 --   :ingested_at   -- job parameter, never CURRENT_DATE() (docs/conventions.md)
+-- COPY INTO requires its target table to already exist -- it does not
+-- create one from nothing. CREATE TABLE IF NOT EXISTS with no column
+-- list is idempotent and lets this first COPY INTO infer the full
+-- schema via the FORMAT_OPTIONS/COPY_OPTIONS below (Databricks COPY
+-- INTO docs' standard create-then-copy pattern).
+CREATE TABLE IF NOT EXISTS IDENTIFIER(:target_table);
+
 COPY INTO IDENTIFIER(:target_table)
 FROM (
   SELECT

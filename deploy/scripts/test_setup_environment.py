@@ -27,6 +27,8 @@ def test_ensure_schema_skips_when_present():
 
 
 def test_main_creates_all_three_layers_with_default_prefix():
+    assert LAYERS == ("bronze", "silver", "gold")
+
     client = MagicMock()
     client.schemas.get.side_effect = NotFound("no such schema")
 

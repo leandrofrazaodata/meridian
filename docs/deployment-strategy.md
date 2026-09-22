@@ -58,10 +58,12 @@ target later if a real second workspace shows up.
 
 - **`setup_environment.py`** — creates `<prefix>_bronze`, `<prefix>_silver`,
   `<prefix>_gold` via the Databricks SDK's
-  `WorkspaceClient().schemas.create(...)`, idempotent. Nothing else — every
-  table in this design self-creates on first successful run (Bronze via
-  `COPY INTO`, Silver/Gold via the pipeline), so there's nothing more for
-  this script to do.
+  `WorkspaceClient().schemas.create(...)`, idempotent. Nothing else —
+  Silver/Gold tables self-create on the pipeline's first successful run,
+  and Bronze tables get a one-time `CREATE TABLE IF NOT EXISTS` from each
+  `deploy/resources/sql/ingest_*.sql` file before its `COPY INTO` (owned
+  by those SQL files, not this script), so there's nothing more for this
+  script to do.
 - **`teardown_environment.py`** — the SDK's `schemas.delete()` has no
   cascade option, so this runs raw SQL through the SDK's Statement
   Execution API against the project's SQL Warehouse instead:
@@ -96,7 +98,7 @@ databricks bundle deploy -t dev      # job + pipeline created
                                       # (job runs — Bronze/Silver/Gold populate)
 ...
 databricks bundle destroy -t dev     # job + pipeline gone; Silver/Gold tables dropped with them
-python teardown_environment.py       # schemas + remaining Bronze tables gone (soft-deleted)
+python teardown_environment.py --warehouse-id <id>  # schemas + remaining Bronze tables gone (soft-deleted)
 ```
 
 Destroy order matters: compute/orchestration first, then schemas — avoids

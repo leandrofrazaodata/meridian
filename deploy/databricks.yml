@@ -6,6 +6,16 @@ bundle:
 include:
   - resources/*.yml
 
+sync:
+  # transformations/ lives one level above this bundle's root (deploy/).
+  # sync.paths entries may point outside the bundle root — that's what's
+  # needed to get the Lakeflow pipeline's source directory uploaded on
+  # `bundle deploy` (see resources/pipelines.yml's libraries.glob.include,
+  # which resolves relative to this bundle's root).
+  paths:
+    - .
+    - ../transformations
+
 variables:
   schema_prefix:
     description: >-
