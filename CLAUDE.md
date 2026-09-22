@@ -20,7 +20,7 @@ everything here:
 - `docs/pipeline-architecture.md` — stages, data flow, storage layers, how components connect
 - `docs/validation-rules.md` — what "valid" means per dataset/stage
 - `docs/conventions.md` — naming, coding patterns, style rules
-- `docs/deployment-strategy.md` — how Databricks objects (schemas, job, pipeline) get created and destroyed
+- `docs/deployment-strategy.md` — how Databricks objects (schemas, job, pipeline) get created and destroyed; step-by-step run commands are in `deploy/README.md`
 - `contracts/*.yml` — per-source data contracts (schema, natural key, quality rules); see `contracts/README.md`
 - `data/data_dictionary.md` — source dataset schema (see below)
 
