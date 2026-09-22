@@ -2,3 +2,6 @@
 # not in git — only the data dictionary (documentation, not data) is tracked.
 data/*
 !data/data_dictionary.md
+
+# Local git worktrees used for isolated plan execution (superpowers:using-git-worktrees).
+.worktrees/
