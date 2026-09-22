@@ -5,8 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository contents
 
 This repo is becoming a data engineering pipeline built on top of a raw
-synthetic health/wearables dataset (`data/`). There is no build/lint/test
-tooling yet — it will be added as the pipeline takes shape.
+synthetic health/wearables dataset (`data/`). `deploy/scripts/` (the
+Unity Catalog schema-lifecycle scripts) has a `pytest` suite — run it
+from `deploy/scripts/` with `pytest`. No build/lint/test tooling exists
+yet for the rest of the repo — it will be added as the pipeline takes
+shape.
 
 ## Documentation map
 

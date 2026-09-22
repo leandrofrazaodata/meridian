@@ -1,0 +1,77 @@
+resources:
+  jobs:
+    meridian_pipeline_job:
+      name: meridian_pipeline_job
+      parameters:
+        - name: ingested_at
+          # Dynamic value reference resolved at run time to the job's
+          # scheduled/trigger date -- deterministic per run, never
+          # CURRENT_DATE() (docs/conventions.md "Ingestion metadata
+          # columns"). Override per manual run if backfilling a date.
+          default: "{{job.trigger.time.iso_date}}"
+      schedule:
+        # Adjust the hour/timezone to taste -- nothing in the docs pins a
+        # specific time, only "scheduled daily"
+        # (docs/pipeline-architecture.md "Orchestration").
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: "UTC"
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: ingest_participants
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_participants.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.participants"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: ingest_device_metadata
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_device_metadata.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.device_metadata"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: ingest_wellness_survey
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_wellness_survey.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.wellness_survey"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: ingest_heart_rate
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_heart_rate.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.heart_rate"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: ingest_steps
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_steps.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.steps"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: ingest_sleep
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: sql/ingest_sleep.sql
+            parameters:
+              target_table: "workspace.${var.schema_prefix}_bronze.sleep"
+              ingested_at: "{{job.parameters.ingested_at}}"
+        - task_key: transform
+          depends_on:
+            - task_key: ingest_participants
+            - task_key: ingest_device_metadata
+            - task_key: ingest_wellness_survey
+            - task_key: ingest_heart_rate
+            - task_key: ingest_steps
+            - task_key: ingest_sleep
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.meridian_pipeline.id}
