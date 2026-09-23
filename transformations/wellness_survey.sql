@@ -26,6 +26,23 @@ deduped AS (
   SELECT * FROM keyed
   WHERE _row_num = 1 OR _min_hash <> _max_hash
 ),
+-- participant_exists needs its own step, not an inline IN (SELECT ...)
+-- the way it originally read: Spark disallows subquery expressions
+-- anywhere inside a higher-order function call (filter/transform/
+-- aggregate/...), including in a non-lambda argument like the array()
+-- below -- UNSUPPORTED_SUBQUERY_EXPRESSION_CATEGORY.HIGHER_ORDER_FUNCTION
+-- (SQLSTATE 0A000), confirmed against a live pipeline run on 2026-09-23.
+-- Computed here as a plain boolean column so `reasoned` below only ever
+-- references a column inside filter(), never a subquery.
+with_participant_check AS (
+  SELECT
+    *,
+    EXISTS (
+      SELECT 1 FROM ${schema_prefix}_silver.participants p
+      WHERE p.participant_id = deduped.participant_id
+    ) AS _participant_exists
+  FROM deduped
+),
 reasoned AS (
   SELECT
     participant_id, date, fatigue_score, stress_score, readiness_score, sleep_quality_score,
@@ -37,11 +54,13 @@ reasoned AS (
       CASE WHEN NOT (sleep_quality_score BETWEEN 1 AND 5) THEN 'sleep_quality_in_range' END
     ), x -> x IS NOT NULL) AS _suspect_reasons,
     filter(array(
-      CASE WHEN NOT (participant_id IN (SELECT participant_id FROM ${schema_prefix}_silver.participants))
-        THEN 'participant_exists' END,
+      -- NULL-guarded to match the original `IN (SELECT ...)`'s
+      -- short-circuit: NULL IN (...) is NULL, so CASE WHEN NOT (NULL)
+      -- never fired for a null participant_id.
+      CASE WHEN participant_id IS NOT NULL AND NOT _participant_exists THEN 'participant_exists' END,
       CASE WHEN _min_hash <> _max_hash THEN 'dedup_conflict' END
     ), x -> x IS NOT NULL) AS _quarantine_reasons
-  FROM deduped
+  FROM with_participant_check
 )
 SELECT * FROM reasoned;
 
