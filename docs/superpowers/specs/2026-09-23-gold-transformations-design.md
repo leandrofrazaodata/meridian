@@ -82,6 +82,14 @@ toward coverage. `avg_heart_rate_bpm`/`min_heart_rate_bpm`/
 Silver design spec) shouldn't drag a whole day's average toward one
 repeated value.
 
+Sleep, steps, and wellness suspect rows aren't filtered the same way —
+deliberately. Heart rate is a per-minute series, so dropping individual
+suspect readings still leaves a usable daily aggregate; sleep, steps,
+and wellness are each one row per participant per day, so dropping a
+suspect row there would null out the day's only value and fight the
+spine's "no vanishing days" guarantee. Row-level exclusion only works
+where the grain is finer than a day.
+
 ### Circular mean for `midsleep_hour` and `activity_centroid_hour`
 
 Both are clock times. A plain `AVG()` across multiple days breaks
@@ -200,3 +208,16 @@ convention Silver's own FK checks already established.
   next live deploy rather than guessed at and possibly shipped broken.
   `docs/gold-layer.md` carries the authoritative column-level
   documentation until this is verified.
+- **Unverified cross-schema dependency inference for `participant_day`.**
+  `participant_week` and `participant_study_summary` both read
+  `${schema_prefix}_gold.participant_day` — a fully-qualified reference
+  to a table in a different schema than the pipeline's own default
+  (`${schema_prefix}_silver`, per `pipelines.yml`). Whether Lakeflow's
+  pipeline correctly infers a dependency edge for this kind of
+  cross-schema sibling reference, rather than treating it as an external
+  table that doesn't exist yet, hasn't been checked against a live
+  workspace. If it doesn't, the first pipeline update fails with
+  table-not-found on both downstream views. Flagged for verification at
+  next live deploy: confirm the pipeline's DAG shows `participant_day ->
+  participant_week`/`participant_study_summary` after a `bundle deploy`
+  + pipeline update.

@@ -9,6 +9,9 @@
 -- The anchor date is read from participant_day's own MIN(date) rather
 -- than a second hardcoded copy of the study start date, so the two
 -- tables can't drift out of sync with each other.
+--
+-- Column set is intentionally identical to participant_study_summary.sql
+-- minus study_week -- change both together.
 
 CREATE OR REFRESH MATERIALIZED VIEW ${schema_prefix}_gold.participant_week
 COMMENT 'Weekly reshape of participant_day for the biostatistics team''s weekly batch cadence. Grain: participant_id x study_week (1-4), 200 rows always. Every metric is a straight reshape of participant_day -- nothing here is recomputed from Silver.'

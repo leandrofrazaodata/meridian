@@ -34,7 +34,7 @@ separate schedule per Gold table.
 | `midsleep_hour` | clock-time midpoint of that session, fractional hour (3.5 = 3:30am) |
 | `sleep_efficiency_pct` | the reconciled/derived efficiency value, not the raw self-reported one |
 | `restlessness` | 0-1 scale |
-| `total_steps` | sum of per-minute steps; 0 (not NULL) on a genuine zero-step day |
+| `total_steps` | sum of per-minute steps; 0 on a genuine zero-step day, but also 0 (not NULL) when there's no step data for the day at all — `activity_centroid_hour IS NULL` doesn't disambiguate the two, since it's also NULL on a genuine zero-step day |
 | `activity_centroid_hour` | step-weighted mean hour of activity; NULL on a zero-step day |
 | `avg_heart_rate_bpm`, `min_heart_rate_bpm`, `max_heart_rate_bpm` | exclude any reading Silver flagged suspect (stuck sensor, implausible value, participant-ID mismatch) |
 | `heart_rate_reading_count` | count of ALL readings, suspect or not — a coverage signal, not a trust filter |
@@ -49,6 +49,13 @@ exposure *within* a single day (heavy activity just before and just
 after midnight would pull the centroid toward noon). Not fixed here —
 this is the already-established prototype formula, not new work this
 pass touched — flagged for awareness, not invented around.
+
+**Suspect-row filtering applies to heart rate only.** Sleep, steps, and
+wellness values are passed through unfiltered even when Silver flagged
+them suspect — heart rate's per-minute grain affords row-level exclusion
+without losing the day; a single daily sleep session, step total, or
+survey response doesn't have that luxury without nulling out the row
+entirely (see the design spec's "Suspect heart-rate rows" section).
 
 ## `participant_week`
 
@@ -75,7 +82,7 @@ using whichever aggregate matches its semantics (see table).
 | `avg_midsleep_hour` | circular mean | see "Circular mean" below |
 | `avg_daily_steps` | `AVG(total_steps)` | |
 | `avg_activity_centroid_hour` | circular mean | same treatment, applied proactively |
-| `avg_heart_rate_bpm` | `AVG` | |
+| `avg_heart_rate_bpm` | `AVG` | mean of the 7 daily means, unweighted by each day's valid-reading count |
 | `min_heart_rate_bpm` / `max_heart_rate_bpm` | `MIN`/`MAX` | the week's true low/high, not an average of daily extremes |
 | `total_heart_rate_reading_count` | `SUM` | weekly total readings |
 | `is_provisional` | derived | `total_heart_rate_reading_count / (7 x 1440) < 0.80` |

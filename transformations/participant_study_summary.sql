@@ -10,6 +10,9 @@
 -- re-averaging 4 already-collapsed angles isn't guaranteed to equal the
 -- circular mean of all 28 raw nights. Reshaping both Gold tables
 -- directly from participant_day sidesteps the question.
+--
+-- Column set is intentionally identical to participant_week.sql plus
+-- study_week -- change both together.
 
 CREATE OR REFRESH MATERIALIZED VIEW ${schema_prefix}_gold.participant_study_summary
 COMMENT 'One row per participant summarizing the full 28-day study window -- the table chronotype cohort comparison (e.g. chronotype A vs B) reads from. Grain: participant_id, 50 rows always. Reshaped directly from participant_day.'
