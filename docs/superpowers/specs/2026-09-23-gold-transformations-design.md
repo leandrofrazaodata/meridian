@@ -153,8 +153,8 @@ entirely rather than reasoning through it column-by-column.
 
 `deploy/resources/pipelines.yml` sets the pipeline's default `schema` to
 `${schema_prefix}_silver` — confirmed directly in the file, not assumed.
-Silver's own materialized views rely on this default and reference each
-other with bare names. **Gold objects need `${schema_prefix}_gold.`
+Silver's own materialized views use explicit `${schema_prefix}_silver.`
+qualification for all cross-schema references, including Silver-to-Silver FK checks. **Gold objects need `${schema_prefix}_gold.`
 explicit qualification on both the `CREATE OR REFRESH MATERIALIZED VIEW`
 name itself and every reference to another Gold table**
 (`participant_week`/`participant_study_summary` referencing
