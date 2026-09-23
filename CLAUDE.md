@@ -18,6 +18,7 @@ read the relevant one before working in that area rather than expecting
 everything here:
 
 - `docs/pipeline-architecture.md` — stages, data flow, storage layers, how components connect
+- `docs/gold-layer.md` — Gold table purpose, grain, and consumption guidance for dashboards/reports
 - `docs/validation-rules.md` — what "valid" means per dataset/stage
 - `docs/conventions.md` — naming, coding patterns, style rules
 - `docs/deployment-strategy.md` — how Databricks objects (schemas, job, pipeline) get created and destroyed; step-by-step run commands are in `deploy/README.md`

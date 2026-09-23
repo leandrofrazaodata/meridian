@@ -20,8 +20,11 @@ in `docs/superpowers/specs/2026-09-22-silver-transformations-design.md`
 run against a live workspace yet (see `deploy/README.md`'s "Current
 status") — these files are written and committed, not executed.
 
-**Gold is not started.** `participant_day`, `participant_week`, and
-`participant_study_summary` (`docs/pipeline-architecture.md`) still need
-their own brainstorm → spec → plan cycle, same as Silver went through.
-`participant_week`'s exact schema remains an open "TBD together"
-question, not resolved by this pass.
+**Gold is done.** Three `.sql` files — `participant_day`, `participant_week`,
+and `participant_study_summary` — each defining a materialized view at their
+respective grain (day/week/study). Design rationale and the resolved
+`participant_week` schema (previously an open "TBD together" question) are
+documented in `docs/superpowers/specs/2026-09-23-gold-transformations-design.md`
+and `docs/gold-layer.md` — read those before changing any file here. Nothing
+has been deployed or run against a live workspace yet (see `deploy/README.md`'s
+"Current status") — these files are written and committed, not executed.
