@@ -57,7 +57,7 @@ SELECT
   AVG(avg_heart_rate_bpm) AS avg_heart_rate_bpm,
   MIN(min_heart_rate_bpm) AS min_heart_rate_bpm,
   MAX(max_heart_rate_bpm) AS max_heart_rate_bpm,
-  SUM(heart_rate_reading_count) AS heart_rate_reading_count,
+  SUM(heart_rate_reading_count) AS total_heart_rate_reading_count,
   SUM(heart_rate_reading_count) < 0.80 * 7 * 1440 AS is_provisional,
   AVG(fatigue_score) AS avg_fatigue_score,
   AVG(stress_score) AS avg_stress_score,
