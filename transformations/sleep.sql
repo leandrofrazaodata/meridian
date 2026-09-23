@@ -26,9 +26,15 @@ deduped AS (
 derived AS (
   SELECT
     *,
-    -- asleep_min: total minutes across every non-'awake' stage.
+    -- asleep_min: total minutes across every non-'awake' stage. Start
+    -- value is explicitly BIGINT: stages.duration_min is BIGINT, and
+    -- Spark's aggregate() requires the zero/start value's type to match
+    -- the merge lambda's return type exactly (no implicit widening) --
+    -- a bare `0` infers INT and fails to resolve against live Spark with
+    -- DATATYPE_MISMATCH.UNEXPECTED_INPUT_TYPE (SQLSTATE 42K09). Confirmed
+    -- against a live pipeline run on 2026-09-23.
     aggregate(
-      filter(stages, s -> s.stage != 'awake'), 0, (acc, s) -> acc + s.duration_min
+      filter(stages, s -> s.stage != 'awake'), CAST(0 AS BIGINT), (acc, s) -> acc + s.duration_min
     ) AS asleep_min,
     -- Midpoint instant, as epoch seconds -- named here so midsleep_hour
     -- (next CTE) can derive HOUR/MINUTE/SECOND from one shared value
