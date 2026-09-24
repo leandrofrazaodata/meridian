@@ -1,7 +1,7 @@
 resources:
   jobs:
-    meridian_pipeline_job:
-      name: meridian_pipeline_job
+    meridian_etl_orchestrator:
+      name: meridian_etl_orchestrator
       parameters:
         - name: ingested_at
           # Dynamic value reference resolved at run time to the job's
@@ -65,7 +65,7 @@ resources:
             parameters:
               target_table: "workspace.${var.schema_prefix}_bronze.sleep"
               ingested_at: "{{job.parameters.ingested_at}}"
-        - task_key: transform
+        - task_key: transform_silver
           depends_on:
             - task_key: ingest_participants
             - task_key: ingest_device_metadata
@@ -74,4 +74,9 @@ resources:
             - task_key: ingest_steps
             - task_key: ingest_sleep
           pipeline_task:
-            pipeline_id: ${resources.pipelines.meridian_pipeline.id}
+            pipeline_id: ${resources.pipelines.meridian_silver_pipeline.id}
+        - task_key: transform_gold
+          depends_on:
+            - task_key: transform_silver
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.meridian_gold_pipeline.id}
