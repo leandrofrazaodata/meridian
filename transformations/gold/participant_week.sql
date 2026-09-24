@@ -13,7 +13,7 @@
 -- Column set is intentionally identical to participant_study_summary.sql
 -- minus study_week -- change both together.
 
-CREATE OR REFRESH MATERIALIZED VIEW ${schema_prefix}_gold.participant_week
+CREATE OR REFRESH MATERIALIZED VIEW participant_week
 COMMENT 'Weekly reshape of participant_day for the biostatistics team''s weekly batch cadence. Grain: participant_id x study_week (1-4), 200 rows always. Every metric is a straight reshape of participant_day -- nothing here is recomputed from Silver.'
 AS
 WITH with_week AS (
