@@ -3,9 +3,11 @@
 Gold is the business-facing layer: dashboards, reports, and any other
 downstream consumer (including AI tools querying the catalog) should
 read from here, never from Silver directly. Three materialized views,
-all under `workspace.meridian_gold`, all `${schema_prefix}`-templated in
-source like every other cross-schema reference in this repo
-(`docs/conventions.md`).
+all under `workspace.meridian_gold`. Each view's own `CREATE OR REFRESH
+MATERIALIZED VIEW` line is bare, relying on `meridian_gold_pipeline`'s
+default `_gold` schema; every *reference* to another view or to a
+Silver table stays `${schema_prefix}`-templated, like every other
+cross-schema reference in this repo (`docs/conventions.md`).
 
 ## `participant_day`
 
@@ -20,7 +22,8 @@ against every metric source, so a day with a missing sleep session or
 survey response still gets a row (with NULLs in that source's columns)
 rather than disappearing from a dashboard's date axis.
 
-**Refresh:** daily, along with every other table in the pipeline
+**Refresh:** daily, along with every other Gold table, immediately
+after Silver's own daily refresh completes
 (`docs/pipeline-architecture.md`'s Orchestration section) — there's no
 separate schedule per Gold table.
 
