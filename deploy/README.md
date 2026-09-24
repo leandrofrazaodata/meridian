@@ -97,7 +97,7 @@ databricks bundle validate -t dev --var="warehouse_id=<warehouse-id>"
 # 1. Schemas (idempotent — safe to re-run)
 python scripts/setup_environment.py
 
-# 2. Job + Pipeline
+# 2. Job + Pipelines
 databricks bundle deploy -t dev --var="warehouse_id=<warehouse-id>"
 
 # 3. Trigger a run: ingest tasks (Bronze COPY INTO), then the Silver and

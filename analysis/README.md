@@ -6,7 +6,7 @@ distinct from `transformations/`. These aren't pipeline source: nothing
 here is picked up by `deploy/resources/pipelines.yml`'s
 `libraries.glob.include`, so table references are hardcoded to
 `workspace.meridian_gold.<table>` rather than `${schema_prefix}`-templated
-like `transformations/*.sql`. Run them directly against a deployed
+like the files under `transformations/silver/` and `transformations/gold/`. Run them directly against a deployed
 workspace (SQL editor, `databricks sql query`, etc.) once the Gold tables
 are populated — see `deploy/README.md`.
 
