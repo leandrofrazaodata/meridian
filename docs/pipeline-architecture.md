@@ -107,8 +107,13 @@ on their own weekly cadence, no separate schedule required):
 
 1. **Ingest task(s)** — run the `COPY INTO` statements for each source
    contract into Bronze.
-2. **Transform task** — trigger an update of the Lakeflow Declarative
-   Pipeline (DLT) that defines Silver and Gold as materialized views.
+2. **Transform Silver task** — trigger an update of the Lakeflow
+   Declarative Pipeline (DLT) that defines Silver as materialized views
+   over Bronze.
+3. **Transform Gold task** — trigger an update of the separate Lakeflow
+   Declarative Pipeline (DLT) that defines Gold as materialized views
+   over Silver, gated on step 2 completing so Gold always reads freshly
+   populated Silver tables.
 
 ## Idempotency & reproducibility
 

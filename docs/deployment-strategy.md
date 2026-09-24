@@ -13,7 +13,8 @@ See `pipeline-architecture.md` for what these resources actually do,
 
 | Object | Created by | Destroyed by | DAB-visible? |
 |---|---|---|---|
-| Silver/Gold tables (materialized views) | Lakeflow pipeline's first run | `databricks bundle destroy` (deleting the pipeline currently drops its managed materialized views — today's Databricks behavior, not guaranteed to stay this way) | Yes — defined inside the pipeline resource |
+| Silver tables (materialized views) | `meridian_silver_pipeline`'s first run | `databricks bundle destroy` (deleting the pipeline currently drops its managed materialized views — today's Databricks behavior, not guaranteed to stay this way) | Yes — defined inside the pipeline resource |
+| Gold tables (materialized views) | `meridian_gold_pipeline`'s first run | `databricks bundle destroy` (deleting the pipeline currently drops its managed materialized views — today's Databricks behavior, not guaranteed to stay this way) | Yes — defined inside the pipeline resource |
 | Bronze tables | `COPY INTO`, run imperatively inside a job task | Nothing, unless something else drops them | No — created as a side effect of a task running, never declared as a resource |
 | Schemas (`meridian_bronze/silver/gold`) | `setup_environment.py` | `teardown_environment.py` | Technically possible as a native `schemas:` bundle resource now, deliberately not used here (see below) |
 | Volume (`/Volumes/workspace/default/raw/data/`) | Uploaded manually, out of scope | Never — no tool in this design touches it | N/A |
@@ -42,17 +43,19 @@ target later if a real second workspace shows up.
 
 - **Job** — the daily-scheduled orchestration job from
   `pipeline-architecture.md`: ingest task(s) running each contract's
-  `COPY INTO`, then a pipeline task triggering the Lakeflow pipeline update.
-  `_ingested_at` must be wired in as a real job parameter, never
-  `current_date()` (per `conventions.md`). Exact ingest-task breakdown (one
-  task per contract vs. one parameterized task looping contracts) is
-  deferred to the implementation plan — a task-authoring decision, not an
-  architectural one.
-- **Pipeline** — the single Lakeflow Declarative Pipeline defining Silver
-  and Gold as materialized views, spanning both schemas via fully-qualified
-  names for the Gold layer (already the documented design, not new here).
-  `serverless: true`, no cluster config anywhere — Free Edition has no
-  classic clusters.
+  `COPY INTO`, then two pipeline tasks triggering the Silver and Gold
+  Lakeflow pipeline updates in sequence. `_ingested_at` must be wired in
+  as a real job parameter, never `current_date()` (per `conventions.md`).
+  Exact ingest-task breakdown (one task per contract vs. one parameterized
+  task looping contracts) is deferred to the implementation plan — a
+  task-authoring decision, not an architectural one.
+- **Silver pipeline** — the Lakeflow Declarative Pipeline defining Silver
+  as materialized views over Bronze. `serverless: true`, no cluster config
+  anywhere — Free Edition has no classic clusters.
+- **Gold pipeline** — the Lakeflow Declarative Pipeline defining Gold as
+  materialized views over Silver, reading Silver tables via
+  fully-qualified names across the pipeline boundary. Same `serverless:
+  true` constraint.
 
 ## What the scripts own
 
@@ -94,16 +97,18 @@ stood up later without editing code — not a need that exists today.
 
 ```
 python setup_environment.py          # schemas exist
-databricks bundle deploy -t dev      # job + pipeline created
+databricks bundle deploy -t dev      # job + pipelines created
                                       # (job runs — Bronze/Silver/Gold populate)
 ...
-databricks bundle destroy -t dev     # job + pipeline gone; Silver/Gold tables dropped with them
+databricks bundle destroy -t dev     # job + pipelines gone; Silver/Gold tables dropped with them
 python teardown_environment.py --warehouse-id <id>  # schemas + remaining Bronze tables gone (soft-deleted)
 ```
 
 Destroy order matters: compute/orchestration first, then schemas — avoids
-the pipeline resource tripping over a target schema that's already gone
-mid-cleanup.
+the pipeline resources tripping over a target schema that's already gone
+mid-cleanup. (The two pipeline resources have no ordering dependency on
+each other — each owns and drops only its own layer's materialized
+views.)
 
 ## Directory layout
 
@@ -131,7 +136,7 @@ specifically affect deployment:
   relying on either path, the same rule the rest of the Platform
   Constraints section already follows.
 - **Serverless-only compute** — every resource here (`COPY INTO` task,
-  pipeline task, the Lakeflow pipeline itself) must avoid declaring any
+  both pipeline tasks, both Lakeflow pipelines) must avoid declaring any
   cluster config.
 - **Single catalog** (`workspace`) — both scripts and all bundle resources
   target schemas within it; there's no catalog-level object in scope
