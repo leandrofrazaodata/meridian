@@ -1,24 +1,43 @@
 resources:
   pipelines:
-    meridian_pipeline:
-      name: meridian_pipeline
+    meridian_silver_pipeline:
+      name: meridian_silver_pipeline
       catalog: workspace
-      # `schema` (not the deprecated `target`) is the current field for a
-      # pipeline's default schema — confirmed against `databricks bundle
-      # schema` output. Gold materialized views still land in
-      # <prefix>_gold by fully-qualifying their names inside the pipeline
-      # source, spanning both schemas from one pipeline (see
-      # docs/pipeline-architecture.md's Gold section).
+      # `schema` (not the deprecated `target`) is the current field
+      # name for a pipeline's default schema — confirmed against
+      # `databricks bundle schema` output.
       schema: ${var.schema_prefix}_silver
       serverless: true
       channel: CURRENT
       continuous: false
       development: false
       configuration:
-        # Lets future transformation SQL reference ${schema_prefix}
-        # instead of a hardcoded prefix — same one-source-of-truth
-        # property as the bundle variable it mirrors.
+        # Lets transformation SQL reference ${schema_prefix} instead of
+        # a hardcoded prefix — same one-source-of-truth property the
+        # bundle mirrors.
         schema_prefix: ${var.schema_prefix}
       libraries:
         - glob:
-            include: ../../transformations/**
+            include: ../../transformations/silver/**
+    meridian_gold_pipeline:
+      name: meridian_gold_pipeline
+      catalog: workspace
+      # `schema` (not the deprecated `target`) is the current field
+      # name for a pipeline's default schema — confirmed against
+      # `databricks bundle schema` output. Gold's own CREATE lines rely
+      # on this default; only references to Silver tables (a different
+      # pipeline's schema) need `${schema_prefix}`-qualifying inside the
+      # SQL itself (see docs/pipeline-architecture.md's Gold section).
+      schema: ${var.schema_prefix}_gold
+      serverless: true
+      channel: CURRENT
+      continuous: false
+      development: false
+      configuration:
+        # Lets transformation SQL reference ${schema_prefix} instead of
+        # a hardcoded prefix — same one-source-of-truth property the
+        # bundle mirrors.
+        schema_prefix: ${var.schema_prefix}
+      libraries:
+        - glob:
+            include: ../../transformations/gold/**
