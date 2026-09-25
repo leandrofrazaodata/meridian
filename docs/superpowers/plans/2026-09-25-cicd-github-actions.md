@@ -436,7 +436,11 @@ and-shape-matches-spec discipline used in each task's own steps, plus:
      env-var auth from a GitHub-hosted runner (flagged unverified in the
      spec).
    - Separately, and not part of any workflow file: turn on branch
-     protection on `main` requiring the `run-tests` check, if the PR
+     protection on `main` requiring the reusable-workflow check GitHub
+     actually reports — predicted `test / test`
+     (`<caller-job-id> / <called-job-id>`, not the literal name
+     `run-tests`), but verify against the first real PR run before
+     creating the rule rather than trusting this prediction — if the PR
      gate should actually block merges rather than just report status
      (spec's "Operational behavior" section — a manual repo setting,
      deliberately not automated here).

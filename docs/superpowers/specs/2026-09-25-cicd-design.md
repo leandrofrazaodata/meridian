@@ -159,9 +159,18 @@ column-`COMMENT` syntax risk in earlier specs.
   files.** `pr-checks.yml` reports a status check; it doesn't by itself
   block a merge. Turning it into a real gate means enabling "Require
   status checks to pass before merging" on `main` in the repo's branch
-  protection settings, naming the `run-tests` check. Recommended, but
-  it's a GitHub repo setting outside what a workflow file can configure
-  — flagged here rather than silently assumed enabled, and not applied
+  protection settings. **Check name caveat:** for a job that calls a
+  reusable workflow, GitHub names the resulting check
+  `<caller-job-id> / <called-job-id>`, not the called workflow's
+  filename — here that's predicted to be `test / test`
+  (`pr-checks.yml`'s job id calling `run-tests.yml`'s job id, neither
+  given an explicit `name:`), not `run-tests`. Read the actual name off
+  the first real PR run before creating the branch-protection rule
+  rather than trusting this prediction — same unverified-until-live-run
+  treatment as the Bronze `timestamp` physical-type risk and the Gold
+  column-`COMMENT` syntax risk in earlier specs. Recommended, but it's a
+  GitHub repo setting outside what a workflow file can configure — it's
+  flagged here rather than silently assumed enabled, and not applied
   automatically as part of this design (an outward-facing, persistent
   change to how every future merge behaves, worth the user's explicit
   say-so rather than a side effect of a CI file's existence).
