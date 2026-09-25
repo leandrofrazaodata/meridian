@@ -125,6 +125,18 @@ deploy/
 Kept separate from `contracts/`/`docs/`/`data/` — a deployment concern, not
 a data-contract one.
 
+## CI/CD
+
+GitHub Actions keeps the Job/Pipelines in sync with `deploy/` and
+`transformations/` automatically — every pull request runs the
+`deploy/scripts` pytest suite plus a read-only `bundle validate`; every
+merge to `main` that touches `deploy/**` or `transformations/**`
+re-runs both, then `databricks bundle deploy`. It never runs the data
+pipelines themselves (`bundle run`) and never touches schemas —
+`setup_environment.py`/`teardown_environment.py` stay manual, same as
+today. Full design: `docs/superpowers/specs/2026-09-25-cicd-design.md`;
+workflow files: `.github/workflows/`.
+
 ## Platform constraints affecting this design
 
 From `pipeline-architecture.md`'s Free Edition constraints, the parts that
@@ -135,6 +147,13 @@ specifically affect deployment:
   has open reports of failing. Verify directly against the workspace before
   relying on either path, the same rule the rest of the Platform
   Constraints section already follows.
+- **CI auth is a third, separate path from both of the above** —
+  GitHub Actions authenticates via `DATABRICKS_HOST`/`DATABRICKS_TOKEN`
+  environment variables (no `databricks configure`, no browser terminal
+  involved), which is Databricks' standard non-interactive method
+  generally, but hasn't been confirmed working specifically on Free
+  Edition from a hosted runner yet. Unverified until the first real CI
+  run — see `docs/superpowers/specs/2026-09-25-cicd-design.md`.
 - **Serverless-only compute** — every resource here (`COPY INTO` task,
   both pipeline tasks, both Lakeflow pipelines) must avoid declaring any
   cluster config.
@@ -149,8 +168,6 @@ specifically affect deployment:
   resources are actually authored.
 - A convenience wrapper chaining `setup → deploy` and `destroy → teardown`
   into one command — nice-to-have, not required for the design to work.
-- Git/CI — this workflow is entirely CLI-driven and doesn't depend on git
-  existing (the repo currently isn't a git repo). Revisit if that changes.
 
 ## Decision log
 
