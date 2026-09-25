@@ -1,0 +1,14 @@
+# Gates pull requests targeting main with the reusable test workflow.
+# Only a merge-blocker if branch protection on main requires this
+# check to pass — see docs/superpowers/specs/2026-09-25-cicd-design.md
+# "Operational behavior".
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    uses: ./.github/workflows/run-tests.yml
+    secrets: inherit

@@ -171,3 +171,9 @@ copy of the environment.
   (`/Volumes/workspace/default/raw/data/`); it's uploaded manually and
   out of scope for both.
 - Full design rationale and decision log: `docs/deployment-strategy.md`.
+- Merges to `main` that touch `deploy/**` or `transformations/**` also
+  trigger an automatic `bundle deploy` via GitHub Actions
+  (`.github/workflows/deploy.yml`) — the manual Step 3 commands above
+  still work the same way for a first-time or ad hoc deploy; the
+  automation just keeps things in sync afterward. See
+  `docs/superpowers/specs/2026-09-25-cicd-design.md`.
