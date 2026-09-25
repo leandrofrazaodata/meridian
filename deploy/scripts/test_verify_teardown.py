@@ -33,30 +33,30 @@ def test_schema_exists_false_when_not_found():
 
 def test_job_exists_true_when_name_matches():
     client = MagicMock()
-    client.jobs.list.return_value = [_job("[dev leandro] meridian_pipeline_job")]
+    client.jobs.list.return_value = [_job("[dev leandro] meridian_etl_orchestrator")]
 
-    assert job_exists(client, "meridian_pipeline_job") is True
+    assert job_exists(client, "meridian_etl_orchestrator") is True
 
 
 def test_job_exists_false_when_no_jobs():
     client = MagicMock()
     client.jobs.list.return_value = []
 
-    assert job_exists(client, "meridian_pipeline_job") is False
+    assert job_exists(client, "meridian_etl_orchestrator") is False
 
 
 def test_pipeline_exists_true_when_name_matches():
     client = MagicMock()
-    client.pipelines.list_pipelines.return_value = [_pipeline("[dev leandro] meridian_pipeline")]
+    client.pipelines.list_pipelines.return_value = [_pipeline("[dev leandro] meridian_silver_pipeline")]
 
-    assert pipeline_exists(client, "meridian_pipeline") is True
+    assert pipeline_exists(client, "meridian_silver_pipeline") is True
 
 
 def test_pipeline_exists_false_when_no_pipelines():
     client = MagicMock()
     client.pipelines.list_pipelines.return_value = []
 
-    assert pipeline_exists(client, "meridian_pipeline") is False
+    assert pipeline_exists(client, "meridian_silver_pipeline") is False
 
 
 def test_main_reports_clean_and_returns_zero():
@@ -82,8 +82,26 @@ def test_main_reports_dirty_and_returns_one_when_schema_remains():
 def test_main_reports_dirty_when_job_remains():
     client = MagicMock()
     client.schemas.get.side_effect = NotFound("no such schema")
-    client.jobs.list.return_value = [_job("[dev leandro] meridian_pipeline_job")]
+    client.jobs.list.return_value = [_job("[dev leandro] meridian_etl_orchestrator")]
     client.pipelines.list_pipelines.return_value = []
+
+    assert main([], client=client) == 1
+
+
+def test_main_reports_dirty_when_only_silver_pipeline_remains():
+    client = MagicMock()
+    client.schemas.get.side_effect = NotFound("no such schema")
+    client.jobs.list.return_value = []
+    client.pipelines.list_pipelines.return_value = [_pipeline("[dev leandro] meridian_silver_pipeline")]
+
+    assert main([], client=client) == 1
+
+
+def test_main_reports_dirty_when_only_gold_pipeline_remains():
+    client = MagicMock()
+    client.schemas.get.side_effect = NotFound("no such schema")
+    client.jobs.list.return_value = []
+    client.pipelines.list_pipelines.return_value = [_pipeline("[dev leandro] meridian_gold_pipeline")]
 
     assert main([], client=client) == 1
 

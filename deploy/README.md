@@ -97,31 +97,33 @@ databricks bundle validate -t dev --var="warehouse_id=<warehouse-id>"
 # 1. Schemas (idempotent — safe to re-run)
 python scripts/setup_environment.py
 
-# 2. Job + Pipeline
+# 2. Job + Pipelines
 databricks bundle deploy -t dev --var="warehouse_id=<warehouse-id>"
 
-# 3. Trigger a run: ingest tasks (Bronze COPY INTO), then the pipeline
-#    update (Silver/Gold materialized views)
-databricks bundle run meridian_pipeline_job -t dev
+# 3. Trigger a run: ingest tasks (Bronze COPY INTO), then the Silver and
+#    Gold pipeline updates in sequence
+databricks bundle run meridian_etl_orchestrator -t dev
 ```
 
 Watch progress with `databricks bundle summary -t dev`, which prints
-links to the Job and Pipeline in the workspace UI, or check the UI
-directly. The job also runs on its own daily schedule (see
+links to the Job and both Pipelines in the workspace UI, or check the
+UI directly. The job also runs on its own daily schedule (see
 `resources/jobs.yml`) — the manual `run` above is only for an immediate
 first run or an ad hoc re-run.
 
 Two things to expect here, neither is a bug:
 
 - **Resource names in the UI are prefixed `[dev <your-username>]`** —
-  e.g. `[dev leandro_lf_frazao2] meridian_pipeline_job`. That's
+  e.g. `[dev leandro_lf_frazao2] meridian_etl_orchestrator`. That's
   `databricks.yml`'s `targets.dev.mode: development` automatically
   namespacing deployed resources so they don't collide with anyone
   else's dev deployment in a shared workspace.
-- **The `transform` task currently fails or no-ops.** It's the task that
-  triggers the pipeline; the pipeline has no Silver/Gold source files
-  yet (see "Current status" above), so there's nothing for it to build.
-  The 6 ingest tasks ahead of it still run and populate Bronze normally.
+- **The `transform_silver`/`transform_gold` tasks currently fail or
+  no-op.** These are the tasks that trigger the Silver and Gold
+  pipelines; if `transformations/` has no source files for a layer (see
+  "Current status" above), there's nothing for that layer's pipeline to
+  build. The 6 ingest tasks ahead of them still run and populate Bronze
+  normally.
 
 ## 4. Tear it down
 
@@ -129,7 +131,8 @@ Compute/orchestration first, then schemas — reverse of setup, so nothing
 trips over an already-dropped schema mid-cleanup:
 
 ```bash
-# 1. Job + Pipeline (Silver/Gold materialized views go with the Pipeline)
+# 1. Job + Pipelines (Silver/Gold materialized views go with their
+#    respective Pipeline)
 databricks bundle destroy -t dev --var="warehouse_id=<warehouse-id>"
 
 # 2. Schemas — drops meridian_bronze/silver/gold, CASCADE
@@ -144,8 +147,8 @@ hours.
 ```bash
 python scripts/verify_teardown.py
 ```
-Prints the status of all three schemas plus the job and pipeline, and
-exits non-zero if anything's still hanging around.
+Prints the status of all three schemas plus the job and both pipelines,
+and exits non-zero if anything's still hanging around.
 
 ## Script flags
 
@@ -158,7 +161,7 @@ copy of the environment.
 |---|---|---|
 | `setup_environment.py` | — | `--prefix`, `--catalog` |
 | `teardown_environment.py` | `--warehouse-id` | `--prefix`, `--catalog` |
-| `verify_teardown.py` | — | `--prefix`, `--catalog`, `--job-name`, `--pipeline-name` |
+| `verify_teardown.py` | — | `--prefix`, `--catalog`, `--job-name`, `--silver-pipeline-name`, `--gold-pipeline-name` |
 
 ## Notes
 

@@ -8,7 +8,7 @@
 -- Daily fact table every other Gold table and every dashboard reads
 -- from. The only Gold table that reads Silver directly.
 
-CREATE OR REFRESH MATERIALIZED VIEW ${schema_prefix}_gold.participant_day
+CREATE OR REFRESH MATERIALIZED VIEW participant_day
 COMMENT 'Daily snapshot per participant -- the single daily fact table every dashboard, report, and other Gold table reads from. Grain: participant_id x date, always exactly 1,400 rows (50 participants x 28 study days) regardless of source completeness.'
 AS
 WITH spine AS (

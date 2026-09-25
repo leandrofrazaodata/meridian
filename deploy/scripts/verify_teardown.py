@@ -1,15 +1,15 @@
 """Check whether Meridian's deployed Databricks objects have been torn down.
 
 Read-only -- makes no changes, only reports what it finds. Checks the three
-medallion schemas (bronze/silver/gold), the orchestration job, and the
-Lakeflow pipeline: everything docs/deployment-strategy.md's "Full lifecycle"
-destroys.
+medallion schemas (bronze/silver/gold), the orchestration job, and the two
+Lakeflow pipelines (Silver, Gold): everything docs/deployment-strategy.md's
+"Full lifecycle" destroys.
 
 Job and pipeline names are matched by substring rather than exact name,
 because the bundle's `dev` target uses `mode: development`
 (deploy/databricks.yml), which prefixes deployed resource names with
 `[dev <username>]` -- the workspace never has a job literally named
-"meridian_pipeline_job", only one whose name contains that string.
+"meridian_etl_orchestrator", only one whose name contains that string.
 
 Usage:
     python deploy/scripts/verify_teardown.py [--prefix meridian] [--catalog workspace]
@@ -26,8 +26,9 @@ from databricks.sdk.errors import NotFound
 
 CATALOG_DEFAULT = "workspace"
 PREFIX_DEFAULT = "meridian"
-JOB_NAME_DEFAULT = "meridian_pipeline_job"
-PIPELINE_NAME_DEFAULT = "meridian_pipeline"
+JOB_NAME_DEFAULT = "meridian_etl_orchestrator"
+SILVER_PIPELINE_NAME_DEFAULT = "meridian_silver_pipeline"
+GOLD_PIPELINE_NAME_DEFAULT = "meridian_gold_pipeline"
 LAYERS = ("bronze", "silver", "gold")
 
 
@@ -37,7 +38,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--catalog", default=CATALOG_DEFAULT, help="Unity Catalog catalog name (default: %(default)s)")
     parser.add_argument("--job-name", default=JOB_NAME_DEFAULT, help="Job name substring to search for (default: %(default)s)")
     parser.add_argument(
-        "--pipeline-name", default=PIPELINE_NAME_DEFAULT, help="Pipeline name substring to search for (default: %(default)s)"
+        "--silver-pipeline-name",
+        default=SILVER_PIPELINE_NAME_DEFAULT,
+        help="Silver pipeline name substring to search for (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--gold-pipeline-name",
+        default=GOLD_PIPELINE_NAME_DEFAULT,
+        help="Gold pipeline name substring to search for (default: %(default)s)",
     )
     return parser.parse_args(argv)
 
@@ -76,8 +84,12 @@ def main(argv: list[str] | None = None, client: WorkspaceClient | None = None) -
     print(f"job matching '{args.job_name}': {'still exists' if found else 'gone'}")
     clean = clean and not found
 
-    found = pipeline_exists(client, args.pipeline_name)
-    print(f"pipeline matching '{args.pipeline_name}': {'still exists' if found else 'gone'}")
+    found = pipeline_exists(client, args.silver_pipeline_name)
+    print(f"pipeline matching '{args.silver_pipeline_name}': {'still exists' if found else 'gone'}")
+    clean = clean and not found
+
+    found = pipeline_exists(client, args.gold_pipeline_name)
+    print(f"pipeline matching '{args.gold_pipeline_name}': {'still exists' if found else 'gone'}")
     clean = clean and not found
 
     print("Everything torn down." if clean else "Still cleaning up -- see above.")

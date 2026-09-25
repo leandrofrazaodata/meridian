@@ -1,5 +1,5 @@
 # DAB bundle root. See docs/deployment-strategy.md for the design this
-# implements — why DAB owns only the Job + Pipeline, not schemas.
+# implements — why DAB owns only the Job + Pipelines, not schemas.
 bundle:
   name: meridian
 
@@ -9,9 +9,9 @@ include:
 sync:
   # transformations/ lives one level above this bundle's root (deploy/).
   # sync.paths entries may point outside the bundle root — that's what's
-  # needed to get the Lakeflow pipeline's source directory uploaded on
-  # `bundle deploy` (see resources/pipelines.yml's libraries.glob.include,
-  # which resolves relative to this bundle's root).
+  # needed to get both Lakeflow pipelines' source directories uploaded on
+  # `bundle deploy` (see resources/pipelines.yml's two libraries.glob.include
+  # entries, which resolve relative to this bundle's root).
   paths:
     - .
     - ../transformations
