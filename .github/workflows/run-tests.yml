@@ -26,6 +26,60 @@ jobs:
 
       - uses: databricks/setup-cli@main
 
+      - name: Diagnose DNS (temporary — remove after root cause confirmed)
+        working-directory: deploy
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "--- safe facts about DATABRICKS_HOST (never prints the raw value) ---"
+          echo "length: ${#DATABRICKS_HOST}"
+          echo "starts with http://:  $([[ "$DATABRICKS_HOST" == http://* ]] && echo yes || echo no)"
+          echo "starts with https://: $([[ "$DATABRICKS_HOST" == https://* ]] && echo yes || echo no)"
+          echo "has trailing slash:   $([[ "$DATABRICKS_HOST" == */ ]] && echo yes || echo no)"
+          echo "has leading space:    $([[ "$DATABRICKS_HOST" =~ ^[[:space:]] ]] && echo yes || echo no)"
+          echo "has trailing space:   $([[ "$DATABRICKS_HOST" =~ [[:space:]]$ ]] && echo yes || echo no)"
+
+          echo ""
+          echo "--- sanity: known-good external host via glibc resolver (getent) ---"
+          if getent hosts github.com >/dev/null 2>&1; then echo "github.com: OK"; else echo "github.com: FAILED"; fi
+
+          echo ""
+          echo "--- DATABRICKS_HOST via glibc resolver (getent), 3 attempts ---"
+          for i in 1 2 3; do
+            if getent hosts "$DATABRICKS_HOST" >/dev/null 2>&1; then echo "attempt $i: OK"; else echo "attempt $i: FAILED"; fi
+          done
+
+          echo ""
+          echo "--- DATABRICKS_HOST via curl, DNS+TCP+TLS only, no auth sent, 3 attempts ---"
+          for i in 1 2 3; do
+            if code=$(curl -sS --max-time 10 -o /dev/null -w "%{http_code}" "https://$DATABRICKS_HOST/" 2>&1); then
+              echo "attempt $i: http_code=$code"
+            else
+              echo "attempt $i: curl error, output=$code"
+            fi
+          done
+
+          echo ""
+          echo "--- databricks CLI (Go binary, pure-Go resolver), 3 attempts ---"
+          for i in 1 2 3; do
+            if out=$(databricks current-user me 2>&1); then
+              echo "attempt $i: OK"
+            else
+              echo "attempt $i: FAILED"
+            fi
+            echo "$out" | tail -3
+          done
+
+          echo ""
+          echo "--- databricks CLI with GODEBUG=netdns=cgo (forces glibc resolver) ---"
+          if out=$(GODEBUG=netdns=cgo databricks current-user me 2>&1); then
+            echo "cgo resolver: OK"
+          else
+            echo "cgo resolver: FAILED"
+          fi
+          echo "$out" | tail -5
+
       - name: Validate bundle
         working-directory: deploy
         env:
