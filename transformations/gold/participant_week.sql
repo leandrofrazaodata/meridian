@@ -28,7 +28,7 @@ SELECT
   MAX(chronotype) AS chronotype,
   MAX(age) AS age,
   MAX(gender) AS gender,
-  AVG(asleep_min) AS avg_asleep_min,
+  CAST(AVG(asleep_min) AS DECIMAL(18,2)) AS avg_asleep_min,
   -- Circular mean, not a plain AVG: midsleep_hour is a clock time, and a
   -- naive average breaks whenever a participant's nights straddle
   -- midnight (e.g. one night at 23.8, another at 0.7, naive AVG ~12.2 --
@@ -36,35 +36,35 @@ SELECT
   -- participants have this in their actual sleep sessions (see spec
   -- doc). Convert each night's hour to a point on the 24h clock, average
   -- the unit vectors, convert back; normalize the result to [0, 24).
-  MOD(
+  CAST(MOD(
     DEGREES(ATAN2(
       AVG(SIN(RADIANS(midsleep_hour * 15))),
       AVG(COS(RADIANS(midsleep_hour * 15)))
     )) + 360,
     360
-  ) / 15 AS avg_midsleep_hour,
-  AVG(sleep_efficiency_pct) AS avg_sleep_efficiency_pct,
-  AVG(restlessness) AS avg_restlessness,
-  AVG(total_steps) AS avg_daily_steps,
+  ) / 15 AS DECIMAL(18,2)) AS avg_midsleep_hour,
+  CAST(AVG(sleep_efficiency_pct) AS DECIMAL(18,2)) AS avg_sleep_efficiency_pct,
+  CAST(AVG(restlessness) AS DECIMAL(18,2)) AS avg_restlessness,
+  CAST(AVG(total_steps) AS DECIMAL(18,2)) AS avg_daily_steps,
   -- Same circular-mean treatment as avg_midsleep_hour, applied
   -- proactively -- an hour-of-day column has the identical wraparound
   -- exposure even though this one hasn't been independently re-verified
   -- against real data the way midsleep_hour was.
-  MOD(
+  CAST(MOD(
     DEGREES(ATAN2(
       AVG(SIN(RADIANS(activity_centroid_hour * 15))),
       AVG(COS(RADIANS(activity_centroid_hour * 15)))
     )) + 360,
     360
-  ) / 15 AS avg_activity_centroid_hour,
-  AVG(avg_heart_rate_bpm) AS avg_heart_rate_bpm,
+  ) / 15 AS DECIMAL(18,2)) AS avg_activity_centroid_hour,
+  CAST(AVG(avg_heart_rate_bpm) AS DECIMAL(18,2)) AS avg_heart_rate_bpm,
   MIN(min_heart_rate_bpm) AS min_heart_rate_bpm,
   MAX(max_heart_rate_bpm) AS max_heart_rate_bpm,
   SUM(heart_rate_reading_count) AS total_heart_rate_reading_count,
   SUM(heart_rate_reading_count) < 0.80 * 7 * 1440 AS is_provisional,
-  AVG(fatigue_score) AS avg_fatigue_score,
-  AVG(stress_score) AS avg_stress_score,
-  AVG(readiness_score) AS avg_readiness_score,
-  AVG(sleep_quality_score) AS avg_sleep_quality_score
+  CAST(AVG(fatigue_score) AS DECIMAL(18,2)) AS avg_fatigue_score,
+  CAST(AVG(stress_score) AS DECIMAL(18,2)) AS avg_stress_score,
+  CAST(AVG(readiness_score) AS DECIMAL(18,2)) AS avg_readiness_score,
+  CAST(AVG(sleep_quality_score) AS DECIMAL(18,2)) AS avg_sleep_quality_score
 FROM with_week
 GROUP BY participant_id, study_week;

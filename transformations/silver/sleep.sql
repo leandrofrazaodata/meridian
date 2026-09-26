@@ -43,7 +43,11 @@ derived AS (
     -- HOUR/MINUTE/SECOND extraction reads back in that same timezone, so
     -- the round trip is correct regardless of what that timezone actually
     -- is -- it never needs to match true UTC.
-    (unix_timestamp(sleep_onset) + unix_timestamp(sleep_end)) / 2 AS _midsleep_epoch
+    -- Format string is required: sleep_onset/sleep_end are STRING in ISO 8601
+    -- ("2026-01-07T22:54:29.000"). The bare unix_timestamp() defaults to
+    -- "yyyy-MM-dd HH:mm:ss" which cannot parse the T separator and silently
+    -- returns NULL, which made midsleep_hour NULL for every row.
+    (unix_timestamp(sleep_onset, "yyyy-MM-dd'T'HH:mm:ss.SSS") + unix_timestamp(sleep_end, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 2 AS _midsleep_epoch
   FROM deduped
 ),
 with_midsleep AS (
@@ -66,7 +70,7 @@ reconciled AS (
     -- quarantined below anyway) to avoid a divide-by-zero/negative-duration
     -- computation on rows that will end up in quarantine regardless.
     CASE WHEN sleep_end > sleep_onset
-      THEN 100.0 * asleep_min / ((unix_timestamp(sleep_end) - unix_timestamp(sleep_onset)) / 60.0)
+      THEN 100.0 * asleep_min / ((unix_timestamp(sleep_end, "yyyy-MM-dd'T'HH:mm:ss.SSS") - unix_timestamp(sleep_onset, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 60.0)
       ELSE NULL
     END AS efficiency_pct_derived
   FROM with_midsleep
@@ -105,7 +109,7 @@ reasoned AS (
         ELSE false END
       ) THEN 'stage_contiguous' END,
       CASE WHEN array_contains(
-        transform(stages, s -> s.duration_min <> CAST((unix_timestamp(s.end_time) - unix_timestamp(s.start_time)) / 60 AS INT)),
+        transform(stages, s -> s.duration_min <> CAST((unix_timestamp(s.end_time, "yyyy-MM-dd'T'HH:mm:ss.SSS") - unix_timestamp(s.start_time, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 60 AS INT)),
         true
       ) THEN 'stage_duration_consistent' END,
       CASE WHEN NOT (restlessness IS NULL OR restlessness BETWEEN 0 AND 1)
