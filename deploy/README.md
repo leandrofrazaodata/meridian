@@ -11,10 +11,10 @@ Every command below assumes your shell's current directory is `deploy/`
 ## Current status
 
 Everything below has been run end to end against a real Free Edition
-workspace and confirmed working, as of 2026-09-22 — except Silver/Gold:
-`transformations/` is still empty (see `transformations/README.md`), so
-the pipeline has no source to build from yet. What that means for Step 3
-is called out inline below.
+workspace and confirmed working — Bronze, Silver, and Gold all populate.
+Last full run: 2026-09-29, the first one entirely under the
+`meridian-pipeline-runner` service principal (schemas, tables, Job, and
+both pipelines all owned by and running as it).
 
 ## Prerequisites
 
@@ -122,19 +122,16 @@ UI directly. The job also runs on its own daily schedule (see
 `resources/jobs.yml`) — the manual `run` above is only for an immediate
 first run or an ad hoc re-run.
 
-Two things to expect here, neither is a bug:
+One thing to expect here, not a bug:
 
 - **Resource names in the UI are prefixed `[dev meridian_pipeline_runner]`**
   — the deploying identity, the service principal. That's
   `databricks.yml`'s `targets.dev.mode: development` automatically
   namespacing deployed resources so they don't collide with anyone
   else's dev deployment in a shared workspace.
-- **The `transform_silver`/`transform_gold` tasks currently fail or
-  no-op.** These are the tasks that trigger the Silver and Gold
-  pipelines; if `transformations/` has no source files for a layer (see
-  "Current status" above), there's nothing for that layer's pipeline to
-  build. The 6 ingest tasks ahead of them still run and populate Bronze
-  normally.
+
+The `ingest_*` tasks print `SQL Task Output: {}` on success — `COPY
+INTO` returns no rows — and the two pipeline tasks print nothing.
 
 ## 4. Tear it down
 

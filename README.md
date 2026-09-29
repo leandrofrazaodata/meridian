@@ -58,12 +58,16 @@ Full step-by-step (prerequisites, tests, `bundle validate`, standing
 the environment up, tearing it down) lives in `deploy/README.md` — the
 short version, run from `deploy/`:
 
+Everything runs as the `meridian-pipeline-runner` service principal
+through a `meridian-sp` CLI profile — never as yourself (see
+`docs/deployment-strategy.md` "Identity"):
+
 ```bash
-cd scripts && pytest -v && cd ..                                            # unit tests (mocked)
-databricks bundle validate -t dev --var="warehouse_id=<warehouse-id>"       # read-only check
-python scripts/setup_environment.py                                        # create schemas
-databricks bundle deploy -t dev --var="warehouse_id=<warehouse-id>"        # deploy Job + Pipelines
-databricks bundle run meridian_etl_orchestrator -t dev                     # run it
+cd scripts && pytest -v && cd ..                                                                            # unit tests (mocked)
+databricks bundle validate -t dev --profile meridian-sp --var="warehouse_id=<warehouse-id>"                 # read-only check
+DATABRICKS_CONFIG_PROFILE=meridian-sp python scripts/setup_environment.py --grant-read-to "account users"   # create schemas
+databricks bundle deploy -t dev --profile meridian-sp --var="warehouse_id=<warehouse-id>"                   # deploy Job + Pipelines
+databricks bundle run meridian_etl_orchestrator -t dev --profile meridian-sp --var="warehouse_id=<warehouse-id>"  # run it
 ```
 
 ## CI/CD
@@ -71,23 +75,32 @@ databricks bundle run meridian_etl_orchestrator -t dev                     # run
 `.github/workflows/` runs the same test suite (`pytest` +
 `databricks bundle validate`) on every pull request to `main`, and
 again — then a real `databricks bundle deploy` — on every merge to
-`main` that touches `deploy/**` or `transformations/**`. Design
-rationale: `docs/superpowers/specs/2026-09-25-cicd-design.md`.
+`main` that touches `deploy/**` or `transformations/**`. Both
+authenticate as the service principal via OAuth
+(`DATABRICKS_CLIENT_ID`/`DATABRICKS_CLIENT_SECRET`), not a personal
+token. A daily `SP secret expiry` workflow fails once the service
+principal's short-lived secret is 7 days from expiring — rotation steps
+are in `deploy/README.md`. Design rationale:
+`docs/superpowers/specs/2026-09-25-cicd-design.md` and
+`docs/superpowers/specs/2026-09-29-service-principal-identity-design.md`.
 
 ## AI Usage
 
 This project was built through AI pair-programming with
 [Claude Code](https://claude.com/claude-code) — every layer (deploy
-scripts, Silver, Gold, the pipeline split, analysis queries, CI/CD)
+scripts, Silver, Gold, the pipeline split, analysis queries, CI/CD,
+service-principal identity)
 went through a design → plan → implementation → review cycle before
 merging, not just generated ad hoc.
 
 - **Models:** primarily Claude Sonnet 5, with Claude Haiku 4.5 handling
-  smaller, mechanical implementation tasks — both attributed via
-  `Co-Authored-By` trailers throughout the commit history.
+  smaller, mechanical implementation tasks and Claude Opus 5.5 doing the
+  service-principal identity work — all attributed via `Co-Authored-By`
+  trailers throughout the commit history.
 - **Where:** deploy bundle + Unity Catalog lifecycle scripts, Silver
   transformations, Gold transformations, a post-live-run Silver
-  hotfix, analytics queries, the Silver/Gold pipeline split, and this
-  CI/CD setup — 7 pull requests total.
-- **Time:** ~4 active days (2026-09-22 → 2026-09-25), per commit
-  history — not separately time-tracked beyond that.
+  hotfix, analytics queries, the Silver/Gold pipeline split, the CI/CD
+  setup, a sleep-timestamp/decimal-formatting fix, and moving deploy,
+  run, and ownership onto a service principal — 9 pull requests total.
+- **Time:** 2026-09-18 → 2026-09-29, per commit history — not
+  separately time-tracked beyond that.

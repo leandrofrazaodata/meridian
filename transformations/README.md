@@ -25,9 +25,9 @@ different grain — one row per stage, not per night). Design rationale, the res
 threshold (15 minutes), and the mapping from the contracts' `on_fail`
 vocabulary onto Lakeflow's native `EXPECT` constraints are all written up
 in `docs/superpowers/specs/2026-09-22-silver-transformations-design.md`
-— read that before changing any file here. Nothing has been deployed or
-run against a live workspace yet (see `deploy/README.md`'s "Current
-status") — these files are written and committed, not executed.
+— read that before changing any file here. Deployed and running live
+via `meridian_silver_pipeline` (see `deploy/README.md`'s "Current
+status").
 
 **Gold is done.** `transformations/gold/` has three `.sql` files —
 `participant_day`, `participant_week`, and `participant_study_summary`
@@ -40,6 +40,5 @@ the resolved `participant_week` schema (previously an open "TBD
 together" question) are documented in
 `docs/superpowers/specs/2026-09-23-gold-transformations-design.md` and
 `docs/gold-layer.md` — read those before changing any file here.
-Nothing has been deployed or run against a live workspace yet (see
-`deploy/README.md`'s "Current status") — these files are written and
-committed, not executed.
+Deployed and running live via `meridian_gold_pipeline` (see
+`deploy/README.md`'s "Current status").

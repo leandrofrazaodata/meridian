@@ -115,6 +115,10 @@ on their own weekly cadence, no separate schedule required):
    over Silver, gated on step 2 completing so Gold always reads freshly
    populated Silver tables.
 
+The Job and both pipelines run as the `meridian-pipeline-runner`
+service principal, which also owns every schema and table — see
+`deployment-strategy.md` "Identity".
+
 ## Idempotency & reproducibility
 
 - **Bronze**: `COPY INTO` tracks which files it has already loaded;
