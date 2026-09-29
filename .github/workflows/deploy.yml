@@ -31,5 +31,8 @@ jobs:
         working-directory: deploy
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          # OAuth M2M as the meridian-pipeline-runner service principal --
+          # see docs/deployment-strategy.md "Identity".
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: databricks bundle deploy -t dev --var="warehouse_id=${{ vars.DATABRICKS_WAREHOUSE_ID }}"
