@@ -33,13 +33,26 @@ variables:
       different warehouse ID. Find yours with `databricks warehouses
       list`, then supply it with --var="warehouse_id=<id>" at deploy
       time, or add it under targets.dev.variables below once known.
+  service_principal_id:
+    description: >-
+      Application ID of the service principal every Job/Pipeline runs as,
+      and the only identity that deploys this bundle (locally via the
+      `meridian-sp` CLI profile, and in CI). An identifier, not a
+      credential. See docs/deployment-strategy.md "Identity".
+    default: d2a8bef0-ed6e-4a46-9dd1-84a527c9eade
 
 targets:
   dev:
     mode: development
     default: true
     # No workspace.host here deliberately: auth comes from the local
-    # Databricks CLI profile (`databricks configure`), per
-    # docs/deployment-strategy.md's Platform constraints note that Free
-    # Edition CLI auth only reliably works from a local machine. Use
-    # `--profile <name>` at deploy time for a non-default profile.
+    # `meridian-sp` Databricks CLI profile (OAuth M2M as the service
+    # principal -- pass `--profile meridian-sp`), or from DATABRICKS_*
+    # env vars in CI. Per docs/deployment-strategy.md's Platform
+    # constraints, Free Edition CLI auth only reliably works from a local
+    # machine or CI, not from inside the workspace UI.
+    # Job and both pipelines always execute as the service principal,
+    # even if a human ever deploys by mistake -- docs/deployment-strategy.md
+    # "Identity".
+    run_as:
+      service_principal_name: ${var.service_principal_id}
