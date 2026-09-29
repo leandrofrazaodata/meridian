@@ -113,10 +113,10 @@ databricks bundle deploy -t dev --profile meridian-sp --var="warehouse_id=<wareh
 
 # 3. Trigger a run: ingest tasks (Bronze COPY INTO), then the Silver and
 #    Gold pipeline updates in sequence
-databricks bundle run meridian_etl_orchestrator -t dev --profile meridian-sp
+databricks bundle run meridian_etl_orchestrator -t dev --profile meridian-sp --var="warehouse_id=<warehouse-id>"
 ```
 
-Watch progress with `databricks bundle summary -t dev --profile meridian-sp`, which prints
+Watch progress with `databricks bundle summary -t dev --profile meridian-sp --var="warehouse_id=<warehouse-id>"`, which prints
 links to the Job and both Pipelines in the workspace UI, or check the
 UI directly. The job also runs on its own daily schedule (see
 `resources/jobs.yml`) — the manual `run` above is only for an immediate
