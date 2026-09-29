@@ -95,13 +95,15 @@ stood up later without editing code — not a need that exists today.
 
 ## Full lifecycle
 
+Every step runs as the service principal (see "Identity" below):
+
 ```
-python setup_environment.py          # schemas exist
-databricks bundle deploy -t dev      # job + pipelines created
-                                      # (job runs — Bronze/Silver/Gold populate)
+DATABRICKS_CONFIG_PROFILE=meridian-sp python setup_environment.py --grant-read-to "account users"  # schemas exist
+databricks bundle deploy -t dev --profile meridian-sp   # job + pipelines created
+                                                        # (job runs — Bronze/Silver/Gold populate)
 ...
-databricks bundle destroy -t dev     # job + pipelines gone; Silver/Gold tables dropped with them
-python teardown_environment.py --warehouse-id <id>  # schemas + remaining Bronze tables gone (soft-deleted)
+databricks bundle destroy -t dev --profile meridian-sp  # job + pipelines gone; Silver/Gold tables dropped with them
+DATABRICKS_CONFIG_PROFILE=meridian-sp python teardown_environment.py --warehouse-id <id>  # schemas + remaining Bronze tables gone (soft-deleted)
 ```
 
 Destroy order matters: compute/orchestration first, then schemas — avoids
@@ -125,6 +127,44 @@ deploy/
 Kept separate from `contracts/`/`docs/`/`data/` — a deployment concern, not
 a data-contract one.
 
+## Identity
+
+One service principal, `meridian-pipeline-runner` (application ID in
+`databricks.yml`'s `service_principal_id` variable), is the only identity
+that deploys anything — locally through the `meridian-sp` CLI profile
+(OAuth M2M), and in CI through `DATABRICKS_CLIENT_ID`/
+`DATABRICKS_CLIENT_SECRET` — and the only identity anything runs as:
+`targets.dev.run_as` pins the Job and both pipelines to it, even if a
+human ever deploys by mistake.
+
+| Object | Created by | Owner |
+|---|---|---|
+| Schemas | `setup_environment.py` under the SP profile | SP |
+| Bronze tables | Job `COPY INTO` tasks (`run_as` SP) | SP |
+| Silver/Gold materialized views | pipeline updates (`run_as` SP) | SP |
+| Job, both pipelines | `bundle deploy` under the SP | SP (`IS_OWNER`) |
+
+Why: every Unity Catalog object and workspace resource is owned by
+whoever creates it, so having the SP create everything gives correct
+ownership with no manual transfers. Nothing depends on a person's
+account or personal access token, and there's exactly one bundle state,
+under `/Users/<sp-application-id>/.bundle/`. Deploying as yourself
+would start a second, conflicting state — don't.
+
+Human access: workspace admins inherit `CAN_MANAGE` on every job and
+pipeline, so viewing and triggering runs from the UI is unaffected.
+Query access comes from `setup_environment.py --grant-read-to "account
+users"`, which grants `USE SCHEMA` + `SELECT` on all three schemas.
+
+Secret lifetime: the SP's OAuth secrets are deliberately short-lived.
+`.github/workflows/sp-secret-expiry.yml` fails daily once the
+`DATABRICKS_SP_SECRET_EXPIRES` repo variable is 7 days away or less;
+rotation steps are in `deploy/README.md` "Rotating the
+service-principal secret". An expired secret stops CI and local deploys
+only — scheduled Job runs keep working, since `run_as` needs no secret.
+
+Full design: `docs/superpowers/specs/2026-09-29-service-principal-identity-design.md`.
+
 ## CI/CD
 
 GitHub Actions keeps the Job/Pipelines in sync with `deploy/` and
@@ -143,17 +183,16 @@ From `pipeline-architecture.md`'s Free Edition constraints, the parts that
 specifically affect deployment:
 
 - **CLI auth on Free Edition only reliably works from a local machine**
-  (PAT via `databricks configure`) — deploying from inside the workspace UI
+  (the `meridian-sp` OAuth profile — see "Identity") — deploying from inside the workspace UI
   has open reports of failing. Verify directly against the workspace before
   relying on either path, the same rule the rest of the Platform
   Constraints section already follows.
 - **CI auth is a third, separate path from both of the above** —
-  GitHub Actions authenticates via `DATABRICKS_HOST`/`DATABRICKS_TOKEN`
-  environment variables (no `databricks configure`, no browser terminal
-  involved), which is Databricks' standard non-interactive method
-  generally, but hasn't been confirmed working specifically on Free
-  Edition from a hosted runner yet. Unverified until the first real CI
-  run — see `docs/superpowers/specs/2026-09-25-cicd-design.md`.
+  GitHub Actions authenticates as the service principal via
+  `DATABRICKS_HOST`/`DATABRICKS_CLIENT_ID`/`DATABRICKS_CLIENT_SECRET`
+  environment variables (OAuth M2M, no config file, no browser terminal
+  involved). See "Identity" above and
+  `docs/superpowers/specs/2026-09-25-cicd-design.md`.
 - **Serverless-only compute** — every resource here (`COPY INTO` task,
   both pipeline tasks, both Lakeflow pipelines) must avoid declaring any
   cluster config.
@@ -181,3 +220,9 @@ specifically affect deployment:
   `Migration_bronze` pipeline, flat `default` schema, referenced in
   `pipeline-architecture.md`'s own decision log) — already deleted from the
   workspace; not a migration concern for this design.
+- **Service principal owns and runs everything** (2026-09-29) — replaces
+  deploying and running as the user with a personal access token.
+  Migrated by tear-down-and-rebuild under the SP rather than in-place
+  ownership transfer, so creator-becomes-owner does the work and the full
+  setup → deploy → run cycle is proven under the SP. See
+  `docs/superpowers/specs/2026-09-29-service-principal-identity-design.md`.
