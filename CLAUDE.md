@@ -11,6 +11,18 @@ from `deploy/scripts/` with `pytest`. No build/lint/test tooling exists
 yet for the rest of the repo — it will be added as the pipeline takes
 shape.
 
+## Databricks identity
+
+Everything is deployed, run, and owned by the `meridian-pipeline-runner`
+service principal (`docs/deployment-strategy.md` "Identity"). Workspace
+commands that create or change pipeline objects use the `meridian-sp`
+CLI profile (`--profile meridian-sp`, or
+`DATABRICKS_CONFIG_PROFILE=meridian-sp` for `deploy/scripts/*.py`) —
+never the user's `DEFAULT` profile, which would start a second,
+conflicting bundle state. Read-only inspection with `DEFAULT` is fine.
+Unity Catalog grants and `bundle destroy` get blocked for Claude here —
+hand those to the user to run, in PowerShell syntax (their shell).
+
 ## Documentation map
 
 Detail docs are kept separate from this file and filled in incrementally —
