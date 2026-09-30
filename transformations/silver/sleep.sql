@@ -43,12 +43,22 @@ derived AS (
     -- HOUR/MINUTE/SECOND extraction reads back in that same timezone, so
     -- the round trip is correct regardless of what that timezone actually
     -- is -- it never needs to match true UTC.
-    -- Format string is required: sleep_onset/sleep_end are STRING in ISO 8601
+    -- Format string is required: the timestamps are STRING in ISO 8601
     -- ("2026-01-07T22:54:29.000"). The bare unix_timestamp() defaults to
     -- "yyyy-MM-dd HH:mm:ss" which cannot parse the T separator and silently
     -- returns NULL, which made midsleep_hour NULL for every row.
-    (unix_timestamp(sleep_onset, "yyyy-MM-dd'T'HH:mm:ss.SSS") + unix_timestamp(sleep_end, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 2 AS _midsleep_epoch
-  FROM deduped
+    -- Endpoints come from the stages array (first stage's start -> last
+    -- asleep stage's end, i.e. the wake-up instant), not from
+    -- sleep_onset/sleep_end: a few sessions carry a corrupt sleep_end
+    -- 11-14h after the real wake-up, which pushed their midpoint into the
+    -- morning (sleep_end_matches_stages flags those). try_element_at
+    -- returns NULL rather than throwing under ANSI mode on an empty array.
+    (unix_timestamp(try_element_at(stages, 1).start_time, "yyyy-MM-dd'T'HH:mm:ss.SSS")
+      + unix_timestamp(_wake_time, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 2 AS _midsleep_epoch
+  FROM (
+    SELECT *, try_element_at(filter(stages, s -> s.stage != 'awake'), -1).end_time AS _wake_time
+    FROM deduped
+  )
 ),
 with_midsleep AS (
   SELECT
@@ -117,7 +127,11 @@ reasoned AS (
         true
       ) THEN 'stage_duration_consistent' END,
       CASE WHEN NOT (restlessness IS NULL OR restlessness BETWEEN 0 AND 1)
-        THEN 'restlessness_in_range' END
+        THEN 'restlessness_in_range' END,
+      -- sleep_end should be the wake-up instant = end of the last asleep
+      -- stage. <=> so a missing _wake_time also flags rather than
+      -- evaluating to NULL and slipping through.
+      CASE WHEN NOT (sleep_end <=> _wake_time) THEN 'sleep_end_matches_stages' END
     ), x -> x IS NOT NULL) AS _suspect_reasons,
     filter(array(
       CASE WHEN NOT (sleep_onset < sleep_end) THEN 'session_valid' END,
@@ -133,7 +147,8 @@ CREATE OR REFRESH MATERIALIZED VIEW sleep_sessions (
   CONSTRAINT efficiency_reconciles EXPECT (NOT array_contains(_suspect_reasons, 'efficiency_reconciles')),
   CONSTRAINT stage_contiguous EXPECT (NOT array_contains(_suspect_reasons, 'stage_contiguous')),
   CONSTRAINT stage_duration_consistent EXPECT (NOT array_contains(_suspect_reasons, 'stage_duration_consistent')),
-  CONSTRAINT restlessness_in_range EXPECT (NOT array_contains(_suspect_reasons, 'restlessness_in_range'))
+  CONSTRAINT restlessness_in_range EXPECT (NOT array_contains(_suspect_reasons, 'restlessness_in_range')),
+  CONSTRAINT sleep_end_matches_stages EXPECT (NOT array_contains(_suspect_reasons, 'sleep_end_matches_stages'))
 )
 AS SELECT
   participant_id, date, sleep_onset, sleep_end,
