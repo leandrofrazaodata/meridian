@@ -66,13 +66,17 @@ reconciled AS (
   SELECT
     *,
     efficiency_pct AS efficiency_pct_source,
-    -- Guarded against sleep_onset >= sleep_end (session_valid violations,
-    -- quarantined below anyway) to avoid a divide-by-zero/negative-duration
-    -- computation on rows that will end up in quarantine regardless.
-    CASE WHEN sleep_end > sleep_onset
-      THEN 100.0 * asleep_min / ((unix_timestamp(sleep_end, "yyyy-MM-dd'T'HH:mm:ss.SSS") - unix_timestamp(sleep_onset, "yyyy-MM-dd'T'HH:mm:ss.SSS")) / 60.0)
-      ELSE NULL
-    END AS efficiency_pct_derived
+    -- Sleep efficiency = time asleep / time in bed, where time in bed is
+    -- every stage including the final 'awake' one. Deliberately NOT
+    -- (sleep_end - sleep_onset): in this source sleep_end is the wake-up
+    -- instant, i.e. the *start* of the final awake stage (1397/1400
+    -- sessions, checked 2026-09-30), so that window contains only asleep
+    -- minutes and pinned the result at exactly 100% for every normal
+    -- session. It also made a corrupt sleep_end timestamp distort the
+    -- value. NULLIF guards an empty/zero-length stages array.
+    100.0 * asleep_min
+      / NULLIF(aggregate(stages, CAST(0 AS BIGINT), (acc, s) -> acc + s.duration_min), 0)
+    AS efficiency_pct_derived
   FROM with_midsleep
 ),
 reasoned AS (

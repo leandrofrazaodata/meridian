@@ -55,7 +55,13 @@ quality:
   - id: efficiency_reconciles
     rule: abs(efficiency_pct_derived - efficiency_pct_source) < 5
     on_fail: flag
-    note: Both values are kept in Silver; this just marks sessions where they disagree.
+    note: >-
+      Both values are kept in Silver; this just marks sessions where they
+      disagree. efficiency_pct_derived is time asleep / time in bed (all
+      stages, including the final awake stage). The source efficiency_pct
+      is unreliable -- a flat 100 on ~80% of sessions -- so this fires on
+      the large majority of sessions: it measures the source's
+      unreliability, and Gold does not use it to exclude values.
   - id: stage_contiguous
     rule: "each stage's end_time equals the next stage's start_time"
     on_fail: flag

@@ -63,7 +63,18 @@ SELECT
   spine.gender,
   ss.asleep_min,
   CAST(ss.midsleep_hour AS DECIMAL(18,2)) AS midsleep_hour,
-  CAST(ss.efficiency_pct_derived AS DECIMAL(18,2)) AS sleep_efficiency_pct,
+  -- NULL when Silver flagged the session's stage data itself as
+  -- untrustworthy -- efficiency is computed from those stages, so a
+  -- bad stage (e.g. a duration_min double its start/end span) gives a
+  -- plausible-looking wrong value. Same "exclude suspect input" rule as
+  -- the heart-rate vitals above. Deliberately not every suspect reason:
+  -- efficiency_reconciles compares against the source's own
+  -- efficiency_pct, which is unreliable (mostly a flat 100) and fires on
+  -- nearly every session -- see docs/gold-layer.md.
+  CAST(CASE WHEN NOT arrays_overlap(ss._suspect_reasons,
+                  array('stage_order_expected', 'stage_contiguous', 'stage_duration_consistent'))
+            THEN ss.efficiency_pct_derived END
+       AS DECIMAL(18,2)) AS sleep_efficiency_pct,
   CAST(ss.restlessness AS DECIMAL(18,2)) AS restlessness,
   COALESCE(st.total_steps, 0) AS total_steps,
   CAST(st.activity_centroid_hour AS DECIMAL(18,2)) AS activity_centroid_hour,

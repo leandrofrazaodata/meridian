@@ -35,7 +35,7 @@ separate schedule per Gold table.
 | `chronotype`, `age`, `gender` | denormalized from `participants`, so cohort filtering needs no join |
 | `asleep_min` | total minutes asleep, the session that woke up this date |
 | `midsleep_hour` | clock-time midpoint of that session, fractional hour (3.5 = 3:30am) |
-| `sleep_efficiency_pct` | the reconciled/derived efficiency value, not the raw self-reported one |
+| `sleep_efficiency_pct` | time asleep ÷ time in bed (all stages, including the final awake stage), derived from the `stages` array — not the source's own `efficiency_pct`, which is unreliable (a flat 100 on most sessions). NULL when Silver flagged the session's stage data (`stage_order_expected`, `stage_contiguous`, `stage_duration_consistent`); `participant_week`/`participant_study_summary` averages skip those NULLs |
 | `restlessness` | 0-1 scale |
 | `total_steps` | sum of per-minute steps; 0 on a genuine zero-step day, but also 0 (not NULL) when there's no step data for the day at all — `activity_centroid_hour IS NULL` doesn't disambiguate the two, since it's also NULL on a genuine zero-step day |
 | `activity_centroid_hour` | step-weighted mean hour of activity; NULL on a zero-step day |
