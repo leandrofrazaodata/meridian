@@ -1,6 +1,6 @@
--- Analytical query: heart-rate data-quality coverage.
+-- Analytical query: sensor data-quality coverage.
 -- is_provisional flags a participant-day where under 80% of the
--- expected 1,440 per-minute heart-rate readings came through -- a
+-- expected 1,440 per-minute heart-rate or step readings came through -- a
 -- pipeline-native data-quality signal (docs/gold-layer.md), not a
 -- health metric. Reported overall and by chronotype, to check sensor
 -- dropout isn't lopsided across cohorts.

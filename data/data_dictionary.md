@@ -96,6 +96,24 @@ Stage order within every session: `light → deep → rem → light → awake`.
 `deep_sleep_pct`, and `sleep_efficiency_pct` from the `stages` array — there is no
 pre-computed summary CSV.
 
+**Known source quirks** (checked 2026-09-30; how the pipeline handles each in parentheses):
+
+- **`sleep_end` is the wake-up instant** — the *start* of the final `awake`
+  stage, not the end of the session (1,397 of 1,400 sessions). So
+  `sleep_end − sleep_onset` contains only asleep minutes; efficiency computed
+  against that window is always 100%. (Silver computes efficiency as asleep ÷
+  all stage durations, i.e. time in bed.)
+- **Corrupt `sleep_end`** on 3 sessions (P026 2026-01-23, P035 2026-01-20,
+  P039 2026-01-14): 11–14h after the real wake-up. (Silver flags
+  `sleep_end_matches_stages`; `midsleep_hour` uses stage timestamps instead.)
+- **`efficiency_pct` is unreliable** — a flat 100 on 1,132 of 1,400
+  sessions and barely correlated with any stage-based calculation. (Kept in
+  Silver as `efficiency_pct_source`; never used for Gold.)
+- **Doubled stage duration** on 4 sessions (P007 2026-01-21, P010 2026-01-20,
+  P024 2026-01-11, P035 2026-01-17): the deep stage's `duration_min` is ≈ 2×
+  its `end_time − start_time`. (Silver flags `stage_duration_consistent`;
+  Gold's `sleep_efficiency_pct` is NULL for these.)
+
 ---
 
 ## data/wearable_events/{participant_id}/steps.json
@@ -172,3 +190,7 @@ without checking.
 **Data quality note:** don't assume every in-range value is trustworthy —
 optical heart-rate sensors are prone to signal loss, where a stuck sensor
 repeats its last reading for hours.
+
+**Mislabelled first day:** P010, P019, P022 and P025's `heart_rate.json` has the
+same first-day shift as their `steps.json` (2026-01-08 timestamped as
+2026-01-10) — see the `steps.json` section above.
