@@ -1,7 +1,8 @@
 # Reusable workflow: pytest (deploy/scripts) + a read-only bundle
-# validate. Called by pr-checks.yml (every PR) and deploy.yml (re-run
-# as a safety gate immediately before deploying). See
-# docs/superpowers/specs/2026-09-25-cicd-design.md for the design.
+# validate. Called by pr-checks.yml on every PR; kept as a separate
+# reusable file so the required status check keeps its name,
+# `test / test`. See docs/superpowers/specs/2026-09-25-cicd-design.md
+# for the design.
 name: Run tests
 
 on:

@@ -72,11 +72,12 @@ databricks bundle run meridian_etl_orchestrator -t dev --profile meridian-sp --v
 
 ## CI/CD
 
-`.github/workflows/` runs the same test suite (`pytest` +
-`databricks bundle validate`) on every pull request to `main`, and
-again — then a real `databricks bundle deploy` — on every merge to
-`main` that touches `deploy/**` or `transformations/**`. Both
-authenticate as the service principal via OAuth
+`.github/workflows/` runs the test suite (`pytest` + `databricks
+bundle validate`) on every pull request to `main` — branch protection
+requires it to pass on an up-to-date branch before merging, and blocks
+direct pushes to `main`. Every merge to `main` that touches `deploy/**`
+or `transformations/**` then runs `databricks bundle deploy` (no second
+test run). Both authenticate as the service principal via OAuth
 (`DATABRICKS_CLIENT_ID`/`DATABRICKS_CLIENT_SECRET`), not a personal
 token. A daily `SP secret expiry` workflow fails once the service
 principal's short-lived secret is 7 days from expiring — rotation steps
