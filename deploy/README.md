@@ -12,9 +12,10 @@ Every command below assumes your shell's current directory is `deploy/`
 
 Everything below has been run end to end against a real Free Edition
 workspace and confirmed working — Bronze, Silver, and Gold all populate.
-Last full run: 2026-09-29, the first one entirely under the
-`meridian-pipeline-runner` service principal (schemas, tables, Job, and
-both pipelines all owned by and running as it).
+First full run under the `meridian-pipeline-runner` service principal
+(schemas, tables, Job, and both pipelines all owned by and running as it):
+2026-09-29. Last full run: 2026-10-01, after the sleep and steps data
+fixes (PRs #10 and #12).
 
 ## Prerequisites
 

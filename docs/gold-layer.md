@@ -84,7 +84,7 @@ using whichever aggregate matches its semantics (see table).
 | `chronotype`, `age`, `gender` | pass-through | unchanged per participant |
 | `avg_asleep_min`, `avg_sleep_efficiency_pct`, `avg_restlessness` | `AVG` | |
 | `avg_midsleep_hour` | circular mean | see "Circular mean" below |
-| `avg_daily_steps` | `AVG(total_steps)` | |
+| `avg_daily_steps` | `AVG(total_steps)` | skips no-data days (`total_steps` NULL) rather than counting them as 0 |
 | `avg_activity_centroid_hour` | circular mean | same treatment, applied proactively |
 | `avg_heart_rate_bpm` | `AVG` | mean of the 7 daily means, unweighted by each day's valid-reading count |
 | `min_heart_rate_bpm` / `max_heart_rate_bpm` | `MIN`/`MAX` | the week's true low/high, not an average of daily extremes |

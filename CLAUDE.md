@@ -88,3 +88,18 @@ them in any analysis rather than assuming clean input:
 - Sleep stage order within a session is always
   `light → deep → rem → light → awake`, and each stage's `end_time` equals the
   next stage's `start_time`.
+- **`sleep.json.sleep_end` is the wake-up instant** — the *start* of the final
+  `awake` stage, not the end of the session. Three sessions carry a corrupt
+  `sleep_end` 11–14h late; derive session timing from the stage timestamps.
+- **`sleep.json.efficiency_pct` is unreliable** (a flat 100 on ~80% of
+  sessions). Compute efficiency as asleep ÷ time in bed from `stages`. Four
+  sessions have a deep-stage `duration_min` ≈ double its timestamp span.
+- **`steps.json` units are mixed.** P005, P033 and P038 record steps *per
+  hour*, tagged per record with `"_unit": "steps_per_hour"` — divide by 60.
+  P029 and P037 each have one `1000000`-step sentinel record.
+- **Mislabelled first day:** for P010, P019, P022 and P025, both
+  `steps.json` and `heart_rate.json` timestamp the first study day
+  (2026-01-08) as 2026-01-10 — so Jan 8 has no data and Jan 10 is
+  duplicated with conflicting values.
+
+Full detail and how the pipeline handles each: `data/data_dictionary.md`.

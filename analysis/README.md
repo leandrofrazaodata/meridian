@@ -20,7 +20,7 @@ its result grain. Column names and semantics come from `docs/gold-layer.md`
 | `chronotype_comparison.sql` | How do chronotype A and B cohorts compare across sleep, wellness, activity, and heart-rate metrics? | `participant_study_summary` | 1 row per chronotype (2 rows) |
 | `weekly_trend.sql` | Do sleep quality, readiness, fatigue, or activity drift over the 4-week study? | `participant_week` | 1 row per study week (4 rows) |
 | `activity_sleep_relationship.sql` | Does a day's activity level relate to that night's sleep efficiency and next-day readiness? | `participant_day` | 1 row per activity tercile (3 rows) |
-| `data_quality_coverage.sql` | How much heart-rate coverage does the pipeline actually have, and is it lopsided across chronotypes? | `participant_day` | 1 overall row + 1 row per chronotype (3 rows) |
+| `data_quality_coverage.sql` | How much heart-rate and step coverage does the pipeline actually have, and is it lopsided across chronotypes? | `participant_day` | 1 overall row + 1 row per chronotype (3 rows) |
 
 ## Why these four
 

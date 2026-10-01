@@ -2,9 +2,9 @@
 -- Buckets every participant-day into activity terciles (low/med/high
 -- total_steps) and compares avg sleep_efficiency_pct and
 -- avg readiness_score per bucket -- a cross-metric relationship
--- question, not a straight reshape of one Gold column. total_steps is
--- never NULL in participant_day (0 on a genuine zero-step day, per
--- docs/gold-layer.md), so every row buckets cleanly.
+-- question, not a straight reshape of one Gold column. Days with no
+-- step data at all (total_steps NULL, per docs/gold-layer.md) are
+-- excluded -- NTILE would otherwise sort them into 'low activity'.
 -- Grain: one row per activity tercile (3 rows).
 
 WITH buckets AS (
@@ -12,6 +12,7 @@ WITH buckets AS (
     *,
     NTILE(3) OVER (ORDER BY total_steps) AS activity_tercile
   FROM workspace.meridian_gold.participant_day
+  WHERE total_steps IS NOT NULL
 )
 SELECT
   CASE activity_tercile
