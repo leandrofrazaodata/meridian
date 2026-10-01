@@ -86,7 +86,8 @@ SELECT
   w.fatigue_score,
   w.stress_score,
   w.readiness_score,
-  w.sleep_quality_score
+  w.sleep_quality_score,
+  w.sleep_quality_score as new_column
 FROM spine
 LEFT JOIN ${schema_prefix}_silver.sleep_sessions ss
   ON ss.participant_id = spine.participant_id AND ss.date = spine.date
