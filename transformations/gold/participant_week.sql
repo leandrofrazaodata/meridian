@@ -61,7 +61,8 @@ SELECT
   MIN(min_heart_rate_bpm) AS min_heart_rate_bpm,
   MAX(max_heart_rate_bpm) AS max_heart_rate_bpm,
   SUM(heart_rate_reading_count) AS total_heart_rate_reading_count,
-  SUM(heart_rate_reading_count) < 0.80 * 7 * 1440 AS is_provisional,
+  SUM(heart_rate_reading_count) < 0.80 * 7 * 1440
+    OR SUM(step_reading_count) < 0.80 * 7 * 1440 AS is_provisional,
   CAST(AVG(fatigue_score) AS DECIMAL(18,2)) AS avg_fatigue_score,
   CAST(AVG(stress_score) AS DECIMAL(18,2)) AS avg_stress_score,
   CAST(AVG(readiness_score) AS DECIMAL(18,2)) AS avg_readiness_score,

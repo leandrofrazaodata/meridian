@@ -37,11 +37,12 @@ separate schedule per Gold table.
 | `midsleep_hour` | clock-time midpoint of that session, fractional hour (3.5 = 3:30am) — from the start of the first sleep stage to the end of the last asleep stage, not the source's `sleep_end`, which is corrupt on a few sessions (Silver flags those `sleep_end_matches_stages`) |
 | `sleep_efficiency_pct` | time asleep ÷ time in bed (all stages, including the final awake stage), derived from the `stages` array — not the source's own `efficiency_pct`, which is unreliable (a flat 100 on most sessions). NULL when Silver flagged the session's stage data (`stage_order_expected`, `stage_contiguous`, `stage_duration_consistent`); `participant_week`/`participant_study_summary` averages skip those NULLs |
 | `restlessness` | 0-1 scale |
-| `total_steps` | sum of per-minute steps; 0 on a genuine zero-step day, but also 0 (not NULL) when there's no step data for the day at all — `activity_centroid_hour IS NULL` doesn't disambiguate the two, since it's also NULL on a genuine zero-step day |
-| `activity_centroid_hour` | step-weighted mean hour of activity; NULL on a zero-step day |
+| `total_steps` | sum of per-minute steps, excluding minutes Silver flagged suspect (e.g. the source's 1,000,000-step sentinel). Per-hour source values are already converted to per-minute in Silver. 0 on a genuine zero-step day; **NULL when there's no step data for the day at all** (check `step_reading_count`) |
+| `activity_centroid_hour` | step-weighted mean hour of activity, same suspect-minute exclusion; NULL on a zero-step or no-data day |
+| `step_reading_count` | count of ALL step records for the day, suspect or not — a coverage signal like `heart_rate_reading_count`; 1,440 expected |
 | `avg_heart_rate_bpm`, `min_heart_rate_bpm`, `max_heart_rate_bpm` | exclude any reading Silver flagged suspect (stuck sensor, implausible value, participant-ID mismatch) |
 | `heart_rate_reading_count` | count of ALL readings, suspect or not — a coverage signal, not a trust filter |
-| `is_provisional` | TRUE when `heart_rate_reading_count` covers under 80% of the expected 1,440 per-minute readings — treat that day's heart-rate figures as low-confidence, don't silently drop the row |
+| `is_provisional` | TRUE when `heart_rate_reading_count` **or** `step_reading_count` covers under 80% of the expected 1,440 per-minute readings — treat that day's heart-rate/step figures as low-confidence, don't silently drop the row. Includes 2026-01-08 and 2026-01-10 for P010/P019/P022/P025, whose source files mislabel the first study day (see `data/data_dictionary.md`) |
 | `fatigue_score`, `stress_score`, `readiness_score`, `sleep_quality_score` | self-reported, straight from `wellness` |
 
 **Known limitation:** `activity_centroid_hour` is a plain step-weighted
@@ -88,7 +89,7 @@ using whichever aggregate matches its semantics (see table).
 | `avg_heart_rate_bpm` | `AVG` | mean of the 7 daily means, unweighted by each day's valid-reading count |
 | `min_heart_rate_bpm` / `max_heart_rate_bpm` | `MIN`/`MAX` | the week's true low/high, not an average of daily extremes |
 | `total_heart_rate_reading_count` | `SUM` | weekly total readings |
-| `is_provisional` | derived | `total_heart_rate_reading_count / (7 x 1440) < 0.80` |
+| `is_provisional` | derived | heart-rate **or** step readings summed over the week `/ (7 x 1440) < 0.80` |
 | `avg_fatigue_score`, `avg_stress_score`, `avg_readiness_score`, `avg_sleep_quality_score` | `AVG` | |
 
 Every weekly column is prefixed `avg_`/`min_`/`max_`/`total_` even where
