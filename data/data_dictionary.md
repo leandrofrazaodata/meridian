@@ -121,6 +121,24 @@ Expected step rate: **0–30 steps/minute** at rest through moderate activity;
 burst windows may reach higher values. All timestamps should fall on whole-minute
 boundaries (seconds = `00`).
 
+**Known source quirks** (checked 2026-10-01; Silver handles the first, flags the rest):
+
+- **Per-hour unit on some files.** P005, P033 and P038 record steps per *hour*,
+  tagged on each record with an extra field `"_unit": "steps_per_hour"`
+  (absent on normal per-minute records). Divide by 60 — every tagged value is
+  an exact multiple of 60. Silver converts these.
+- **Sentinel values.** P029 (2026-02-04) and P037 (2026-02-03) each have one
+  record of `1000000` steps; Silver flags them `steps_plausible`.
+- **Mislabelled first day.** In P010, P019, P022 and P025, the file's first
+  1,440 records — which should be 2026-01-08 — are timestamped 2026-01-10.
+  The same files' `heart_rate.json` has the same shift. Result: no data for
+  2026-01-08, and 2026-01-10 appears twice with conflicting values (Silver
+  quarantines those minutes as `dedup_conflict`). Gold marks both days
+  `is_provisional`. The records are not moved back to 2026-01-08 — that
+  they belong there is an inference, not something the source states.
+- **Off-minute records.** A few records (28 across 5 participants) have
+  non-zero seconds, e.g. `13:55:22`.
+
 ---
 
 ## data/wearable_events/{participant_id}/heart_rate.json

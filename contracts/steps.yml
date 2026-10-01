@@ -26,6 +26,13 @@ schema:
   - name: participant_id
     type: string
     nullable: false
+  - name: _unit
+    type: string
+    nullable: true
+    description: >-
+      Source-supplied unit tag. Absent (NULL) = steps per minute;
+      'steps_per_hour' = steps per hour (P005, P033, P038). Silver converts
+      to per-minute and keeps the original value in _steps_source.
 
 quality:
   - id: steps_non_negative
@@ -34,13 +41,20 @@ quality:
   - id: steps_plausible
     rule: steps <= 250
     on_fail: flag
-    note: Expected range is 0-30/min at rest-to-moderate activity; 250 is a hard ceiling, not the expected max.
+    note: >-
+      Expected range is 0-30/min at rest-to-moderate activity; 250 is a hard
+      ceiling, not the expected max. Evaluated after per-hour values are
+      converted to per-minute. Gold excludes flagged minutes from total_steps.
   - id: ts_not_null
     rule: timestamp IS NOT NULL
     on_fail: fail
   - id: pid_matches_path
     rule: participant_id = _pid_from_path
     on_fail: flag
+  - id: unit_known
+    rule: _unit IS NULL OR _unit = 'steps_per_hour'
+    on_fail: flag
+    note: An unrecognized unit is left unconverted, so its value can't be trusted.
 
 freshness:
   cadence: static

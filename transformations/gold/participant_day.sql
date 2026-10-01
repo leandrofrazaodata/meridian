@@ -27,13 +27,20 @@ daily_steps AS (
   SELECT
     participant_id,
     DATE(timestamp) AS date,
-    SUM(steps) AS total_steps,
+    -- Sums exclude suspect minutes (e.g. the source's 1,000,000-step
+    -- sentinel), same rule as the heart-rate vitals below. COALESCE keeps
+    -- a day whose every minute is suspect at 0 rather than NULL -- the
+    -- device did report; NULL is reserved for "no step data at all".
+    COALESCE(SUM(CASE WHEN size(_suspect_reasons) = 0 THEN steps END), 0) AS total_steps,
     -- activity_centroid_hour: step-weighted mean hour of activity --
     -- reused verbatim from the prototype (pipeline-architecture.md).
     -- NULLIF guards the all-zero-step day: the centroid is undefined
     -- there, not zero.
-    SUM((HOUR(timestamp) + MINUTE(timestamp) / 60.0) * steps)
-      / NULLIF(SUM(steps), 0) AS activity_centroid_hour
+    SUM(CASE WHEN size(_suspect_reasons) = 0 THEN (HOUR(timestamp) + MINUTE(timestamp) / 60.0) * steps END)
+      / NULLIF(SUM(CASE WHEN size(_suspect_reasons) = 0 THEN steps END), 0) AS activity_centroid_hour,
+    -- Coverage, like heart_rate_reading_count: every minute regardless of
+    -- suspect status.
+    COUNT(*) AS step_reading_count
   FROM ${schema_prefix}_silver.steps
   GROUP BY participant_id, DATE(timestamp)
 ),
@@ -76,13 +83,18 @@ SELECT
             THEN ss.efficiency_pct_derived END
        AS DECIMAL(18,2)) AS sleep_efficiency_pct,
   CAST(ss.restlessness AS DECIMAL(18,2)) AS restlessness,
-  COALESCE(st.total_steps, 0) AS total_steps,
+  -- NULL (not 0) when there's no step data for the day at all, e.g. the
+  -- first study day of the four participants whose source files mislabel
+  -- it -- see docs/gold-layer.md.
+  st.total_steps,
   CAST(st.activity_centroid_hour AS DECIMAL(18,2)) AS activity_centroid_hour,
   CAST(hr.avg_heart_rate_bpm AS DECIMAL(18,2)) AS avg_heart_rate_bpm,
   hr.min_heart_rate_bpm,
   hr.max_heart_rate_bpm,
   COALESCE(hr.heart_rate_reading_count, 0) AS heart_rate_reading_count,
-  COALESCE(hr.heart_rate_reading_count, 0) < 0.80 * 1440 AS is_provisional,
+  COALESCE(st.step_reading_count, 0) AS step_reading_count,
+  COALESCE(hr.heart_rate_reading_count, 0) < 0.80 * 1440
+    OR COALESCE(st.step_reading_count, 0) < 0.80 * 1440 AS is_provisional,
   w.fatigue_score,
   w.stress_score,
   w.readiness_score,
