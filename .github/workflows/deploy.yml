@@ -1,9 +1,11 @@
 # Redeploys the Job + both Pipelines on merge to main, when
-# deploy-relevant files changed. Re-runs the reusable test workflow
-# first as a safety gate, even though the merging PR already ran it —
-# see docs/superpowers/specs/2026-09-25-cicd-design.md "Trigger model"
-# for why that redundancy is deliberate. Never runs the data pipelines
-# themselves (no `databricks bundle run` anywhere in this file).
+# deploy-relevant files changed. No test job here: branch protection on
+# main requires the PR check (`test / test`) to pass on an up-to-date
+# branch, so the merged commit is the one that was tested -- and
+# `bundle deploy` validates the bundle itself before changing anything.
+# See docs/superpowers/specs/2026-09-25-cicd-design.md "Trigger model".
+# Never runs the data pipelines themselves (no `databricks bundle run`
+# anywhere in this file).
 name: Deploy
 
 on:
@@ -15,12 +17,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    uses: ./.github/workflows/run-tests.yml
-    secrets: inherit
-
   deploy:
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

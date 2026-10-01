@@ -61,6 +61,16 @@ nothing reaches `bundle deploy` without a green test run at the exact
 commit being deployed, regardless of whether that commit arrived via a
 reviewed PR, a direct push, or a squash-merge combining several PRs.
 
+> **Superseded 2026-10-01:** the deploy workflow no longer re-runs the
+> tests. Branch protection on `main` now gives the same guarantee
+> directly: the `test / test` check must pass on a branch that is up to
+> date with `main` (so the merged commit is the tested one), and direct
+> pushes to `main` are blocked, admins included. The re-run also guarded
+> less than it appeared to: `pytest` covers `deploy/scripts/`, which the
+> deploy job never runs, and `bundle deploy` already validates the
+> bundle before changing anything. Removing it saves a redundant job on
+> every merge.
+
 ### Avoiding duplication: a reusable workflow
 
 Writing the same steps (checkout, install, pytest, validate) twice
@@ -174,6 +184,9 @@ column-`COMMENT` syntax risk in earlier specs.
   automatically as part of this design (an outward-facing, persistent
   change to how every future merge behaves, worth the user's explicit
   say-so rather than a side effect of a CI file's existence).
+  **Enabled 2026-10-01** with the user's say-so: required check
+  `test / test` (name confirmed on real PR runs), "require branches to be
+  up to date before merging", enforced for admins too.
 
 ### Doc updates this closes out
 

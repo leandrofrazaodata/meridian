@@ -169,9 +169,11 @@ Full design: `docs/superpowers/specs/2026-09-29-service-principal-identity-desig
 
 GitHub Actions keeps the Job/Pipelines in sync with `deploy/` and
 `transformations/` automatically — every pull request runs the
-`deploy/scripts` pytest suite plus a read-only `bundle validate`; every
-merge to `main` that touches `deploy/**` or `transformations/**`
-re-runs both, then `databricks bundle deploy`. It never runs the data
+`deploy/scripts` pytest suite plus a read-only `bundle validate`, and
+branch protection on `main` requires that check to pass on an
+up-to-date branch before merging; every merge to `main` that touches
+`deploy/**` or `transformations/**` then runs `databricks bundle
+deploy`. It never runs the data
 pipelines themselves (`bundle run`) and never touches schemas —
 `setup_environment.py`/`teardown_environment.py` stay manual, same as
 today. Full design: `docs/superpowers/specs/2026-09-25-cicd-design.md`;
