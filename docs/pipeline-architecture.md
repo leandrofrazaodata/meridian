@@ -59,16 +59,22 @@ see [Decision log](#decision-log)):
   UTC instead — normalize explicitly, don't assume one format.
 - **`firmware_version`** is backfilled via regex from `device_label` where
   blank (a `fix`, not a validation failure).
-- **Sleep efficiency** as reported by the source doesn't always reconcile
-  with the `stages` array; Silver keeps the original value, publishes a
-  recalculated one, and measures the delta rather than trusting either
-  blindly.
+- **Sleep efficiency** as reported by the source is unreliable (a flat 100
+  on most sessions); Silver keeps it as `efficiency_pct_source` but
+  publishes its own, derived from `stages` as time asleep ÷ time in bed,
+  and Gold uses only the derived one.
+- **Steps** arrive in mixed units (a few participants' files are per hour,
+  tagged `_unit`); Silver converts everything to per minute.
+- **Known source data errors** (corrupt `sleep_end`, doubled stage
+  durations, 1,000,000-step sentinels, a mislabelled first study day) are
+  listed in `data/data_dictionary.md`, along with how each is handled.
 - **Sleep session date** is the wake-up date, as given by the source —
   assigning by sleep-onset date would bias evening chronotypes onto the
   wrong day.
 - **`midsleep_hour`** (clock-time midpoint of the sleep session) is derived
-  here — it's the canonical metric the chronotype cohort comparison
-  (Gold) depends on.
+  here, from the stage timestamps (first stage start → last asleep stage
+  end) rather than `sleep_onset`/`sleep_end` — it's the canonical metric the
+  chronotype cohort comparison (Gold) depends on.
 
 ### Gold — materialized views over Silver
 

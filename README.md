@@ -90,18 +90,21 @@ are in `deploy/README.md`. Design rationale:
 This project was built through AI pair-programming with
 [Claude Code](https://claude.com/claude-code) — every layer (deploy
 scripts, Silver, Gold, the pipeline split, analysis queries, CI/CD,
-service-principal identity)
+service-principal identity, data-quality fixes)
 went through a design → plan → implementation → review cycle before
 merging, not just generated ad hoc.
 
 - **Models:** primarily Claude Sonnet 5, with Claude Haiku 4.5 handling
   smaller, mechanical implementation tasks and Claude Opus 5.5 doing the
-  service-principal identity work — all attributed via `Co-Authored-By`
-  trailers throughout the commit history.
+  service-principal identity work and the sleep/steps data-quality fixes —
+  all attributed via `Co-Authored-By` trailers throughout the commit
+  history.
 - **Where:** deploy bundle + Unity Catalog lifecycle scripts, Silver
   transformations, Gold transformations, a post-live-run Silver
   hotfix, analytics queries, the Silver/Gold pipeline split, the CI/CD
-  setup, a sleep-timestamp/decimal-formatting fix, and moving deploy,
-  run, and ownership onto a service principal — 9 pull requests total.
-- **Time:** 2026-09-18 → 2026-09-29, per commit history — not
+  setup, a sleep-timestamp/decimal-formatting fix, moving deploy, run, and
+  ownership onto a service principal, and fixes for source data errors in
+  sleep efficiency, sleep midpoint, and step counts — 12 pull requests
+  total.
+- **Time:** 2026-09-18 → 2026-10-01, per commit history — not
   separately time-tracked beyond that.
